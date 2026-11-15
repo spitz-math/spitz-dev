@@ -1,4 +1,4 @@
-# Spitz.dev Studio
+# spitz.dev
 
 Kody's private board for the tasks ChatGPT and Claude share through Task Drop (the Sprite Drop Supabase project).
 

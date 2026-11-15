@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Spitz.dev Studio</title>
+<title>spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_line_64.png">
 <link rel="apple-touch-icon" href="burger_line_192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <style>
-/* Spitz.dev Studio: Kody's board for the tasks ChatGPT and Claude share (Task Drop). Private: sign-in required, noindex.
+/* spitz.dev: Kody's board for the tasks ChatGPT and Claude share (Task Drop). Private: sign-in required, noindex.
    Look: terminal. Black and charcoal, burger-orange outlines, one mono font. */
 :root{
   --bg:#0a0a0b; --panel:#121315; --panel2:#18191c; --line:#2a2b2f; --ink:#e9e6e1; --muted:#8b8a86;
@@ -88,7 +88,17 @@ main{ padding:18px 20px 40px; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
 .err{ color:var(--bad); font-size:12px; }
 .ok{ color:var(--chatgpt); font-size:12px; }
-/* sign in + forms */
+/* login */
+.login{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; text-align:center; }
+.login img{ width:min(220px,55vw); height:auto; display:block; margin-bottom:18px; }
+.login h1{ margin:0 0 26px; font-size:30px; font-weight:700; }
+.login h1 b, .mark b{ color:var(--orange); }
+.term{ display:flex; align-items:center; gap:10px; width:min(520px,100%); border:1px solid var(--orange); border-radius:6px; padding:8px 8px 8px 14px; background:var(--panel); }
+.term .prompt{ color:var(--orange); white-space:nowrap; }
+.term input{ flex:1; min-width:0; background:transparent; border:0; outline:none; caret-color:var(--orange); padding:6px 0; }
+.login .sub, .login .err{ margin-top:14px; }
+@media (max-width:520px){ .term{ flex-wrap:wrap; } .term .btn{ width:100%; } }
+/* forms */
 .center{ max-width:440px; margin:12vh auto; padding:28px; background:var(--panel); border:1px solid var(--orange); border-radius:6px; }
 .center img{ height:72px; display:block; margin-bottom:14px; }
 .center h1{ margin:0 0 6px; font-size:20px; }
@@ -119,7 +129,7 @@ const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem(
 
 let sb, tasks = [], project = pref('project') || 'all', openId = null, busy = false
 
-if (!window.supabase) app.innerHTML = '<div class="center"><h1>spitz.dev studio</h1><p class="err">Could not load sign-in. Check your connection and reload.</p></div>'
+if (!window.supabase) app.innerHTML = '<div class="center"><h1>spitz.dev</h1><p class="err">Could not load sign-in. Check your connection and reload.</p></div>'
 else start()
 
 async function start() {
@@ -132,20 +142,24 @@ async function start() {
 }
 
 function signIn() {
-  app.innerHTML = `<div class="center"><img src="burger_line_192.png" alt=""><h1>spitz.dev <b style="color:var(--orange)">studio</b></h1>
-    <p class="sub">Private. Sign in with your Sprite Drop email and we'll send you a link.</p>
-    <form id="f"><label class="field"><span>Email</span><input id="em" type="email" required autocomplete="email"></label>
-    <button class="btn primary" type="submit">Send sign-in link</button> <span id="say" class="sub"></span></form></div>`
+  app.innerHTML = `<div class="login"><img src="burger_line_512.png" alt="">
+    <h1>spitz<b>.dev</b><span class="cursor" aria-hidden="true"></span></h1>
+    <form id="f" class="term"><label for="em" class="prompt">&gt; email</label>
+      <input id="em" type="email" required autocomplete="email" spellcheck="false" placeholder="you@example.com">
+      <button class="btn primary" type="submit">send sign-in link</button></form>
+    <p class="sub" id="say">// private. a sign-in link goes to the owner's email.</p></div>`
+  document.getElementById('em').focus()
   document.getElementById('f').onsubmit = async e => {
     e.preventDefault(); const say = document.getElementById('say')
-    say.textContent = 'Sending...'
+    say.textContent = '// sending...'
     const { error } = await sb.auth.signInWithOtp({ email: document.getElementById('em').value.trim(), options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } })
-    say.textContent = error ? error.message : 'Check your email and open the link on this device.'
+    say.textContent = error ? '// ' + error.message : '// check your email and open the link on this device.'
+    say.className = error ? 'err' : 'sub'
   }
 }
 
 function shell() {
-  app.innerHTML = `<header><div class="mark"><img src="burger_line_64.png" alt="">spitz.dev <b>studio</b><span class="cursor" aria-hidden="true"></span></div><div class="sub" id="who"></div><div class="grow"></div>
+  app.innerHTML = `<header><div class="mark"><img src="burger_line_64.png" alt="">spitz<b>.dev</b><span class="cursor" aria-hidden="true"></span></div><div class="sub" id="who"></div><div class="grow"></div>
     <div class="chips" id="projects"></div><button class="btn primary" id="new">+ New task</button><button class="btn" id="out">Sign out</button></header>
     <main><div class="board" id="board"></div><p class="sub" id="status"></p></main>
     <div class="shade" id="shade"></div><aside class="drawer" id="drawer" aria-label="Task"></aside>`
