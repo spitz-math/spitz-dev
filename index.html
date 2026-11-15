@@ -61,6 +61,61 @@ main{ padding:18px 20px 40px; }
 .empty{ color:var(--muted); font-size:12px; padding:6px 2px; }
 .empty::before{ content:'// '; }
 .who-kody{ --c:var(--kody); } .who-chatgpt{ --c:var(--chatgpt); } .who-claude{ --c:var(--claude); } .who-done{ --c:var(--done); }
+/* layout + side bar (like Checkpoint's) */
+body.signed{ display:grid; grid-template-columns:232px 1fr; min-height:100vh; }
+body.signed.mini{ grid-template-columns:64px 1fr; }
+#app{ display:contents; }
+.side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:10px; padding:14px 12px; background:var(--panel); border-right:1px solid var(--orange); overflow:auto; }
+.side svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.brand{ display:flex; align-items:center; gap:10px; padding:2px 2px 6px; font-weight:700; font-size:16px; }
+.brand img{ height:26px; width:auto; }
+.brand b{ color:var(--orange); }
+.ib{ background:transparent; border:1px solid transparent; border-radius:6px; padding:6px; cursor:pointer; color:var(--muted); display:grid; place-items:center; }
+.ib:hover{ color:var(--orange); border-color:var(--line); }
+.collapse{ margin-left:auto; }
+.mini .collapse svg{ transform:rotate(180deg); }
+.search{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:6px; padding:0 10px; background:var(--bg); color:var(--muted); cursor:text; }
+.search:focus-within{ border-color:var(--orange); }
+.search input{ flex:1; min-width:0; border:0; background:transparent; outline:none; padding:8px 0; caret-color:var(--orange); }
+.proj{ background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px; }
+.proj:focus{ border-color:var(--orange); outline:none; }
+.nb{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent; border:1px solid transparent; border-radius:6px; padding:8px 10px; cursor:pointer; color:var(--ink); }
+.nb:hover{ border-color:var(--line); color:var(--orange2); }
+.nb.on{ background:var(--orange); color:#000; font-weight:700; }
+.nb .n{ margin-left:auto; font-size:12px; color:var(--c,var(--muted)); }
+.nb.on .n{ color:#000; }
+.newb{ border-color:var(--orange); color:var(--orange); font-weight:700; }
+nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--line); padding-top:10px; }
+.foot{ display:flex; align-items:center; gap:4px; border-top:1px solid var(--line); padding-top:10px; }
+.live{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-right:auto; padding-left:4px; }
+.live i{ width:8px; height:8px; border-radius:50%; background:var(--chatgpt); }
+.live.off i{ background:var(--bad); }
+.side .who{ font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mini .side{ padding:14px 8px; align-items:center; }
+.mini .side .lbl, .mini .side .proj, .mini .side .n{ display:none; }
+.mini .search{ padding:8px; border-color:transparent; }
+.mini .search input{ display:none; }
+.mini .nb{ justify-content:center; padding:9px; }
+.mini .brand{ flex-direction:column; }
+.mini .collapse{ margin:0; }
+.mini .foot{ flex-direction:column; }
+.mini .live{ margin:0 0 4px; padding:0; }
+.list .lh{ margin:0 0 12px; font-size:14px; color:var(--c); }
+.list .lh::before{ content:'> '; color:var(--muted); }
+.list .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
+@media (max-width:760px){
+  body.signed, body.signed.mini{ grid-template-columns:1fr; }
+  .side, .mini .side{ position:sticky; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; border-right:0; border-bottom:1px solid var(--orange); padding:10px 16px; gap:8px; z-index:5; }
+  .side .grow, .side .who, .collapse{ display:none; }
+  .brand{ padding:0; }
+  .search{ flex:1; min-width:140px; }
+  .mini .search input{ display:block; } .mini .side .lbl{ display:inline; } .mini .side .proj{ display:block; }
+  .proj{ flex:1; }
+  .newb{ width:auto; }
+  nav{ flex-direction:row; flex-wrap:wrap; width:100%; border-top:0; padding-top:0; }
+  nav .nb{ width:auto; padding:6px 8px; } nav .nb .lbl{ display:none; } nav .nb.on .lbl{ display:inline; }
+  .foot{ border-top:0; padding-top:0; } .foot .live{ display:none; }
+}
 /* drawer */
 .shade{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:none; }
 .drawer{ position:fixed; top:0; right:0; bottom:0; width:min(760px,100%); background:var(--bg); border-left:1px solid var(--orange); z-index:11; display:none; flex-direction:column; }
@@ -85,6 +140,7 @@ main{ padding:18px 20px 40px; }
 .compose{ border-top:1px solid var(--orange); padding:12px 20px 16px; background:var(--panel); }
 .compose textarea{ width:100%; min-height:72px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px; caret-color:var(--orange); }
 .compose textarea:focus{ border-color:var(--orange); outline:none; }
+.start{ margin-top:8px; } a.btn{ text-decoration:none; display:inline-block; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
 .err{ color:var(--bad); font-size:12px; }
 .ok{ color:var(--chatgpt); font-size:12px; }
@@ -158,23 +214,55 @@ function signIn() {
   }
 }
 
+const ICON = {
+  board:'<path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z"/>',
+  kody:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>',
+  chatgpt:'<path d="M4 17V7l8-4 8 4v10l-8 4z"/><path d="M12 11v10M4 7l8 4 8-4"/>',
+  claude:'<path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18"/>',
+  done:'<path d="m5 12 4 4 10-10"/>',
+  search:'<circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  out:'<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>',
+  chev:'<path d="m15 6-6 6 6 6"/>'
+}
+const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
+let view = pref('view') || 'board', query = ''
+const VIEWS = [['board','Board'],['kody','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
+
 function shell() {
-  app.innerHTML = `<header><div class="mark"><img src="burger_line_64.png" alt="">spitz<b>.dev</b><span class="cursor" aria-hidden="true"></span></div><div class="sub" id="who"></div><div class="grow"></div>
-    <div class="chips" id="projects"></div><button class="btn primary" id="new">+ New task</button><button class="btn" id="out">Sign out</button></header>
-    <main><div class="board" id="board"></div><p class="sub" id="status"></p></main>
+  document.body.classList.add('signed')
+  if (pref('side') === 'min') document.body.classList.add('mini')
+  app.innerHTML = `<aside class="side" aria-label="Menu">
+      <div class="brand"><img src="burger_line_64.png" alt=""><span class="lbl">spitz<b>.dev</b></span><button class="ib collapse" id="mini" title="Collapse side bar">${ico('chev')}</button></div>
+      <label class="search"><span class="si">${ico('search')}</span><input id="q" type="search" placeholder="Find a task" spellcheck="false"></label>
+      <select id="proj" class="proj" aria-label="Project"></select>
+      <button class="nb newb" id="new">${ico('plus')}<span class="lbl">New task</span></button>
+      <nav id="views"></nav>
+      <div class="grow"></div>
+      <div class="foot"><span class="live" id="live" title="Connected"><i></i><span class="lbl">Live</span></span>
+        <button class="ib" id="rf" title="Refresh">${ico('refresh')}</button><button class="ib" id="out" title="Sign out">${ico('out')}</button></div>
+      <div class="sub lbl who" id="who"></div>
+    </aside>
+    <main><div id="board"></div><p class="sub" id="status"></p></main>
     <div class="shade" id="shade"></div><aside class="drawer" id="drawer" aria-label="Task"></aside>`
-  document.getElementById('out').onclick = async () => { await sb.auth.signOut(); location.reload() }
-  document.getElementById('new').onclick = newTask
-  document.getElementById('shade').onclick = closeTask
+  const $ = id => document.getElementById(id)
+  $('out').onclick = async () => { await sb.auth.signOut(); location.reload() }
+  $('rf').onclick = () => load()
+  $('new').onclick = newTask
+  $('mini').onclick = () => { const m = document.body.classList.toggle('mini'); pref('side', m ? 'min' : 'full') }
+  $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); renderBoard() }
+  $('proj').onchange = e => { project = e.target.value; pref('project', project); renderBoard() }
+  $('shade').onclick = closeTask
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTask() })
-  sb.auth.getUser().then(({ data }) => { document.getElementById('who').textContent = data.user ? data.user.email : '' })
+  sb.auth.getUser().then(({ data }) => { $('who').textContent = data.user ? data.user.email : '' })
 }
 
 async function load() {
   const { data, error } = await sb.from('studio_tasks').select('*').order('updated_at', { ascending: false }).limit(200)
   const st = document.getElementById('status')
-  if (error) { st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
-  tasks = data; st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
+  if (error) { document.getElementById('live').classList.add('off'); st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
+  document.getElementById('live').classList.remove('off'); tasks = data; st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
   renderBoard()
   if (openId) renderTask(openId, true)
 }
@@ -182,22 +270,42 @@ async function load() {
 function renderBoard() {
   const projects = [...new Set(tasks.map(t => t.project))].sort()
   if (project !== 'all' && !projects.includes(project)) project = 'all'
-  document.getElementById('projects').innerHTML = ['all', ...projects].map(p => `<button class="chip ${p === project ? 'on' : ''}" data-p="${esc(p)}">${p === 'all' ? 'All projects' : esc(p)}</button>`).join('')
-  document.querySelectorAll('.chip').forEach(b => b.onclick = () => { project = b.dataset.p; pref('project', project); renderBoard() })
-  const vis = tasks.filter(t => project === 'all' || t.project === project)
-  const cols = [
-    ['kody', 'Your turn', t => t.status !== 'done' && t.turn === 'kody'],
-    ['chatgpt', 'ChatGPT', t => t.status !== 'done' && t.turn === 'chatgpt'],
-    ['claude', 'Claude', t => t.status !== 'done' && (t.turn === 'claude' || !t.turn)],
-    ['done', 'Done', t => t.status === 'done']
-  ]
-  document.getElementById('board').innerHTML = cols.map(([k, name, f]) => {
-    const list = vis.filter(f).slice(0, k === 'done' ? 20 : 100)
-    return `<section class="col who-${k}"><h2><span class="dot" style="background:var(--c)"></span>${name} <span class="count">${list.length}</span></h2>
-      ${list.map(t => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
-        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="err">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`).join('') || '<div class="empty">Nothing here.</div>'}</section>`
+  const ps = document.getElementById('proj')
+  ps.innerHTML = ['all', ...projects].map(p => `<option value="${esc(p)}" ${p === project ? 'selected' : ''}>${p === 'all' ? 'All projects' : esc(p)}</option>`).join('')
+  const vis = tasks.filter(t => (project === 'all' || t.project === project) && (!query || (t.title + ' ' + t.brief + ' ' + t.project).toLowerCase().includes(query)))
+  const F = {
+    kody: t => t.status !== 'done' && t.turn === 'kody',
+    chatgpt: t => t.status !== 'done' && t.turn === 'chatgpt',
+    claude: t => t.status !== 'done' && (t.turn === 'claude' || !t.turn),
+    done: t => t.status === 'done'
+  }
+  document.getElementById('views').innerHTML = VIEWS.map(([k, name]) => {
+    const n = k === 'board' ? vis.filter(t => t.status !== 'done').length : vis.filter(F[k]).length
+    return `<button class="nb who-${k} ${view === k ? 'on' : ''}" data-v="${k}" title="${name}">${ico(k)}<span class="lbl">${name}</span><span class="n">${n || ''}</span></button>`
   }).join('')
+  document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view', view); renderBoard() })
+  const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="err">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
+  const keyOf = t => F.done(t) ? 'done' : F.kody(t) ? 'kody' : F.chatgpt(t) ? 'chatgpt' : 'claude'
+  const b = document.getElementById('board')
+  if (view === 'board') {
+    b.className = 'board'
+    b.innerHTML = ['kody','chatgpt','claude','done'].map(k => {
+      const list = vis.filter(F[k]).slice(0, k === 'done' ? 20 : 100), name = VIEWS.find(v => v[0] === k)[1]
+      return `<section class="col who-${k}"><h2>${name} <span class="count">${list.length}</span></h2>${list.map(t => card(t, k)).join('') || '<div class="empty">nothing here</div>'}</section>`
+    }).join('')
+  } else {
+    const list = vis.filter(F[view]), name = VIEWS.find(v => v[0] === view)[1]
+    b.className = 'list who-' + view
+    b.innerHTML = `<h2 class="lh">${name} <span class="count">${list.length}</span></h2><div class="grid">${list.map(t => card(t, keyOf(t))).join('') || '<div class="empty">nothing here</div>'}</div>`
+  }
   document.querySelectorAll('.card').forEach(c => c.onclick = () => renderTask(c.dataset.id))
+}
+
+// Opens a new chat with the instruction already typed in, so one click (plus Enter, if the app asks) starts that bot on this task.
+const startUrl = (who, t) => {
+  const msg = `check Task Drop: task ${t.id} ("${t.title}"). Read it with get_task and do your turn.`
+  return (who === 'chatgpt' ? 'https://chatgpt.com/?q=' : 'https://claude.ai/new?q=') + encodeURIComponent(msg)
 }
 
 function closeTask() { openId = null; document.body.classList.remove('open') }
@@ -240,7 +348,8 @@ async function renderTask(id, quiet) {
   const loose = assets.filter(a => !shown.has(a.id))
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
-      <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div></div><button class="btn" id="x">Close</button></div>
+      <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
+      <div class="row start"><a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">▶ start ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div></div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
