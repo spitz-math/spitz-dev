@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Spitz.dev Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
+<style>
+/* Spitz.dev Studio: Kody's board for the tasks ChatGPT and Claude share (Task Drop). Private: sign-in required, noindex. */
+:root{
+  --bg:#0b0d1a; --panel:#13162a; --panel2:#1b1f3a; --line:#2a2f55; --ink:#eef1ff; --muted:#9aa2c7;
+  --kody:#ffd23a; --chatgpt:#3ddc97; --claude:#ff8a5c; --done:#7d86b5; --bad:#ff5c7a; --link:#7fd4ff;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 Lexend,system-ui,sans-serif; }
+button,input,textarea,select{ font:inherit; color:inherit; }
+a{ color:var(--link); }
+header{ display:flex; align-items:center; gap:14px; padding:14px 20px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(11,13,26,.94); backdrop-filter:blur(6px); z-index:5; flex-wrap:wrap; }
+.mark{ font-weight:700; font-size:20px; letter-spacing:.02em; }
+.mark b{ color:var(--kody); }
+.sub{ color:var(--muted); font-size:13px; }
+.grow{ flex:1; }
+.btn{ background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:8px 14px; cursor:pointer; }
+.btn:hover{ border-color:var(--muted); }
+.btn.primary{ background:var(--kody); color:#1a1400; border-color:var(--kody); font-weight:600; }
+.btn.gpt{ border-color:var(--chatgpt); color:var(--chatgpt); }
+.btn.cl{ border-color:var(--claude); color:var(--claude); }
+.btn.dn{ border-color:var(--done); color:#c9ceeb; }
+.btn:disabled{ opacity:.5; cursor:default; }
+.chips{ display:flex; gap:6px; flex-wrap:wrap; }
+.chip{ padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:transparent; cursor:pointer; font-size:13px; color:var(--muted); }
+.chip.on{ background:var(--panel2); color:var(--ink); border-color:var(--muted); }
+main{ padding:18px 20px 40px; }
+.board{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+@media (max-width:1000px){ .board{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:620px){ .board{ grid-template-columns:1fr; } header{ padding:12px 16px; } main{ padding:14px 16px 40px; } }
+.col{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; min-height:120px; }
+.col h2{ margin:0 0 10px; font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.dot{ width:10px; height:10px; border-radius:50%; flex:none; }
+.count{ color:var(--muted); font-weight:400; }
+.card{ display:block; width:100%; text-align:left; background:var(--panel2); border:1px solid var(--line); border-left:4px solid var(--c,var(--line)); border-radius:10px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
+.card:hover{ border-color:var(--muted); border-left-color:var(--c,var(--muted)); }
+.card .t{ font-weight:600; }
+.card .m{ color:var(--muted); font-size:12px; margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; }
+.empty{ color:var(--muted); font-size:13px; padding:6px 2px; }
+.who-kody{ --c:var(--kody); } .who-chatgpt{ --c:var(--chatgpt); } .who-claude{ --c:var(--claude); } .who-done{ --c:var(--done); }
+/* drawer */
+.shade{ position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:10; display:none; }
+.drawer{ position:fixed; top:0; right:0; bottom:0; width:min(720px,100%); background:var(--bg); border-left:1px solid var(--line); z-index:11; display:none; flex-direction:column; }
+.open .shade{ display:block; } .open .drawer{ display:flex; }
+.dhead{ padding:16px 20px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:flex-start; }
+.dhead h3{ margin:0; font-size:18px; }
+.dbody{ flex:1; overflow:auto; padding:16px 20px; }
+.brief{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:16px; }
+.brief summary{ cursor:pointer; color:var(--muted); }
+.pre{ white-space:pre-wrap; word-wrap:break-word; }
+.msg{ border-left:3px solid var(--c); padding:2px 0 2px 12px; margin:0 0 16px; }
+.msg .h{ font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.who{ color:var(--c); font-weight:600; font-size:13px; }
+.tag{ border:1px solid var(--line); border-radius:6px; padding:0 6px; font-size:11px; }
+.thumbs{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.thumb{ background:repeating-conic-gradient(#20243f 0 25%,#181b33 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:8px; padding:6px; max-width:100%; }
+.thumb img{ display:block; max-width:min(320px,100%); max-height:220px; image-rendering:pixelated; }
+.thumb .cap{ font-size:11px; color:var(--muted); margin-top:4px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.compose{ border-top:1px solid var(--line); padding:12px 20px 16px; background:var(--panel); }
+.compose textarea{ width:100%; min-height:72px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px; }
+.row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+.err{ color:var(--bad); font-size:13px; }
+.ok{ color:var(--chatgpt); font-size:13px; }
+/* sign in + forms */
+.center{ max-width:420px; margin:12vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+.center h1{ margin:0 0 6px; font-size:24px; }
+.field{ display:block; margin:12px 0; }
+.field span{ display:block; font-size:13px; color:var(--muted); margin-bottom:4px; }
+.field input,.field textarea,.field select{ width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:9px 10px; }
+.field textarea{ min-height:180px; }
+:focus-visible{ outline:2px solid var(--kody); outline-offset:2px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const STUDIO = {
+  supabaseUrl: 'https://klbbcwlddgtsolvsxvwe.supabase.co',
+  // Publishable key: safe in a public page. Row-level security means it only ever shows the signed-in owner's rows.
+  supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9',
+  bucket: 'studio-assets'
+}
+const WHO = { kody:'You', chatgpt:'ChatGPT', claude:'Claude' }
+const app = document.getElementById('app')
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+const linkify = s => esc(s).replace(/https:\/\/[^\s<]+[^\s<.,;:!?)'"]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`)
+const ago = t => { const s = (Date.now() - new Date(t)) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60) + ' min ago'; if (s < 86400) return Math.floor(s/3600) + ' h ago'; return new Date(t).toLocaleDateString() }
+const key = () => 'kody-' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2))
+const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem('studio_' + k); localStorage.setItem('studio_' + k, v) } catch (e) { return null } }
+
+let sb, tasks = [], project = pref('project') || 'all', openId = null, busy = false
+
+if (!window.supabase) app.innerHTML = '<div class="center"><h1>Spitz.dev Studio</h1><p class="err">Could not load sign-in. Check your connection and reload.</p></div>'
+else start()
+
+async function start() {
+  sb = window.supabase.createClient(STUDIO.supabaseUrl, STUDIO.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } })
+  const { data: { session } } = await sb.auth.getSession()
+  if (!session) return signIn()
+  shell(); await load()
+  setInterval(() => { if (!document.hidden && !busy) load() }, 20000)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load() })
+}
+
+function signIn() {
+  app.innerHTML = `<div class="center"><h1>Spitz.dev <b style="color:var(--kody)">Studio</b></h1>
+    <p class="sub">Private. Sign in with your Sprite Drop email and we'll send you a link.</p>
+    <form id="f"><label class="field"><span>Email</span><input id="em" type="email" required autocomplete="email"></label>
+    <button class="btn primary" type="submit">Send sign-in link</button> <span id="say" class="sub"></span></form></div>`
+  document.getElementById('f').onsubmit = async e => {
+    e.preventDefault(); const say = document.getElementById('say')
+    say.textContent = 'Sending...'
+    const { error } = await sb.auth.signInWithOtp({ email: document.getElementById('em').value.trim(), options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } })
+    say.textContent = error ? error.message : 'Check your email and open the link on this device.'
+  }
+}
+
+function shell() {
+  app.innerHTML = `<header><div class="mark">Spitz.dev <b>Studio</b></div><div class="sub" id="who"></div><div class="grow"></div>
+    <div class="chips" id="projects"></div><button class="btn primary" id="new">+ New task</button><button class="btn" id="out">Sign out</button></header>
+    <main><div class="board" id="board"></div><p class="sub" id="status"></p></main>
+    <div class="shade" id="shade"></div><aside class="drawer" id="drawer" aria-label="Task"></aside>`
+  document.getElementById('out').onclick = async () => { await sb.auth.signOut(); location.reload() }
+  document.getElementById('new').onclick = newTask
+  document.getElementById('shade').onclick = closeTask
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTask() })
+  sb.auth.getUser().then(({ data }) => { document.getElementById('who').textContent = data.user ? data.user.email : '' })
+}
+
+async function load() {
+  const { data, error } = await sb.from('studio_tasks').select('*').order('updated_at', { ascending: false }).limit(200)
+  const st = document.getElementById('status')
+  if (error) { st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
+  tasks = data; st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
+  renderBoard()
+  if (openId) renderTask(openId, true)
+}
+
+function renderBoard() {
+  const projects = [...new Set(tasks.map(t => t.project))].sort()
+  if (project !== 'all' && !projects.includes(project)) project = 'all'
+  document.getElementById('projects').innerHTML = ['all', ...projects].map(p => `<button class="chip ${p === project ? 'on' : ''}" data-p="${esc(p)}">${p === 'all' ? 'All projects' : esc(p)}</button>`).join('')
+  document.querySelectorAll('.chip').forEach(b => b.onclick = () => { project = b.dataset.p; pref('project', project); renderBoard() })
+  const vis = tasks.filter(t => project === 'all' || t.project === project)
+  const cols = [
+    ['kody', 'Your turn', t => t.status !== 'done' && t.turn === 'kody'],
+    ['chatgpt', 'ChatGPT', t => t.status !== 'done' && t.turn === 'chatgpt'],
+    ['claude', 'Claude', t => t.status !== 'done' && (t.turn === 'claude' || !t.turn)],
+    ['done', 'Done', t => t.status === 'done']
+  ]
+  document.getElementById('board').innerHTML = cols.map(([k, name, f]) => {
+    const list = vis.filter(f).slice(0, k === 'done' ? 20 : 100)
+    return `<section class="col who-${k}"><h2><span class="dot" style="background:var(--c)"></span>${name} <span class="count">${list.length}</span></h2>
+      ${list.map(t => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="err">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`).join('') || '<div class="empty">Nothing here.</div>'}</section>`
+  }).join('')
+  document.querySelectorAll('.card').forEach(c => c.onclick = () => renderTask(c.dataset.id))
+}
+
+function closeTask() { openId = null; document.body.classList.remove('open') }
+
+async function renderTask(id, quiet) {
+  const t = tasks.find(x => x.id === id); if (!t) return
+  openId = id; document.body.classList.add('open')
+  const d = document.getElementById('drawer')
+  const draft = d.querySelector('textarea')?.value || ''
+  if (!quiet) d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3><div class="sub">Loading...</div></div><button class="btn" id="x">Close</button></div>`
+  const { data: msgs, error } = await sb.from('studio_messages').select('*').eq('task_id', id).order('seq', { ascending: true })
+  if (openId !== id) return
+  if (error) { d.querySelector('.sub').innerHTML = `<span class="err">${esc(error.message)}</span>`; return }
+  // images: anything referenced by the task or its messages, plus anything dropped onto this task
+  const refIds = [...t.refs, ...msgs.flatMap(m => m.refs)].filter(r => r.type === 'asset').map(r => r.id)
+  let assets = []
+  const q1 = await sb.from('studio_assets').select('id,task_id,file_name,width,height,size_bytes,note,path,created_at').eq('task_id', id)
+  assets = q1.data || []
+  const missing = [...new Set(refIds)].filter(a => !assets.some(x => x.id === a))
+  if (missing.length) { const q2 = await sb.from('studio_assets').select('id,task_id,file_name,width,height,size_bytes,note,path,created_at').in('id', missing); assets = assets.concat(q2.data || []) }
+  const urls = {}
+  if (assets.length) {
+    const { data: signed } = await sb.storage.from(STUDIO.bucket).createSignedUrls(assets.map(a => a.path), 3600)
+    ;(signed || []).forEach((s, i) => { if (s.signedUrl) urls[assets[i].id] = s.signedUrl })
+  }
+  if (openId !== id) return
+  const byId = Object.fromEntries(assets.map(a => [a.id, a]))
+  const shown = new Set()
+  const thumb = a => { shown.add(a.id); return `<a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>` }
+  const refsHtml = refs => {
+    const imgs = refs.filter(r => r.type === 'asset' && byId[r.id]).map(r => thumb(byId[r.id])).join('')
+    const links = refs.filter(r => r.type !== 'asset').map(r => `<div><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.type === 'pr' ? 'Pull request ' + (r.url.match(/\/pull\/(\d+)/) || [,''])[1] : r.url)}</a></div>`).join('')
+    return (imgs ? `<div class="thumbs">${imgs}</div>` : '') + links
+  }
+  const msgHtml = m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
+      ${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}'s turn</span>` : ''}${m.set_status ? `<span>· marked ${esc(m.set_status)}</span>` : ''}</div>
+      <div class="pre">${linkify(m.body)}</div>${refsHtml(m.refs)}</div>`
+  const timeline = msgs.map(msgHtml).join('')
+  const briefRefs = refsHtml(t.refs)
+  const loose = assets.filter(a => !shown.has(a.id))
+  const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
+  d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
+      <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div></div><button class="btn" id="x">Close</button></div>
+    <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
+      ${timeline || '<p class="sub">No messages yet.</p>'}
+      ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
+    <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
+      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="chatgpt">Send + ChatGPT's turn</button><button class="btn cl" data-a="claude">Send + Claude's turn</button>
+      ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
+  d.querySelector('#x').onclick = closeTask
+  const ta = d.querySelector('#body'); ta.value = draft
+  d.querySelectorAll('.compose .btn').forEach(b => b.onclick = () => post(t, b.dataset.a))
+  if (!quiet) { const db = d.querySelector('.dbody'); db.scrollTop = db.scrollHeight }
+}
+
+async function post(t, action) {
+  const d = document.getElementById('drawer'), cs = d.querySelector('#cs'), ta = d.querySelector('#body')
+  let body = ta.value.trim()
+  if (!body) {
+    if (action === 'done') body = 'Marked done.'
+    else if (action === 'reopen') body = 'Reopened.'
+    else if (action === 'note') { cs.innerHTML = '<span class="err">Write something first.</span>'; return }
+    else body = `Over to ${WHO[action]}.`
+  }
+  const args = { p_task_id: t.id, p_request_key: key(), p_kind: action === 'done' ? 'decision' : 'note', p_body: body, p_refs: [] }
+  if (action === 'chatgpt' || action === 'claude') Object.assign(args, { p_set_turn: action, p_set_status: t.status === 'done' ? 'open' : null, p_expected_version: t.version })
+  if (action === 'done') Object.assign(args, { p_set_status: 'done', p_expected_version: t.version })
+  if (action === 'reopen') Object.assign(args, { p_set_status: 'open', p_set_turn: 'kody', p_expected_version: t.version })
+  busy = true; d.querySelectorAll('.compose .btn').forEach(b => b.disabled = true); cs.textContent = 'Sending...'
+  const { data, error } = await sb.rpc('studio_post_message', args)
+  busy = false; d.querySelectorAll('.compose .btn').forEach(b => b.disabled = false)
+  if (error) { cs.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Replies from the dashboard are not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
+  if (data && data.conflict) { cs.innerHTML = '<span class="err">Someone posted first. Here is the latest; try again.</span>'; await load(); return }
+  ta.value = ''; cs.innerHTML = '<span class="ok">Sent.</span>'
+  await load()
+}
+
+function newTask() {
+  const projects = [...new Set(tasks.map(t => t.project))].sort()
+  openId = null; document.body.classList.add('open')
+  const d = document.getElementById('drawer')
+  d.innerHTML = `<div class="dhead"><div class="grow"><h3>New task</h3><div class="sub">ChatGPT and Claude only see what you write here, so include everything they need.</div></div><button class="btn" id="x">Close</button></div>
+    <form class="dbody" id="nf">
+      <label class="field"><span>Project (lowercase, like rook-and-ruin)</span><input id="np" required pattern="[a-z0-9][a-z0-9-]{0,39}" list="pl" value="${esc(project !== 'all' ? project : projects[0] || '')}"><datalist id="pl">${projects.map(p => `<option value="${esc(p)}">`).join('')}</datalist></label>
+      <label class="field"><span>Title</span><input id="nt" required maxlength="200"></label>
+      <label class="field"><span>Brief: the goal, the rules, and what to send back</span><textarea id="nb" required maxlength="8000"></textarea></label>
+      <label class="field"><span>Who goes first</span><select id="nw"><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option></select></label>
+      <div class="row"><button class="btn primary" type="submit">Create task</button><span id="ns"></span></div></form>`
+  d.querySelector('#x').onclick = closeTask
+  d.querySelector('#nf').onsubmit = async e => {
+    e.preventDefault(); const ns = d.querySelector('#ns'); ns.textContent = 'Creating...'
+    const { data, error } = await sb.rpc('studio_create_task', { p_request_key: key(), p_project: d.querySelector('#np').value.trim(), p_title: d.querySelector('#nt').value.trim(), p_brief: d.querySelector('#nb').value.trim(), p_turn: d.querySelector('#nw').value, p_refs: [] })
+    if (error) { ns.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Creating tasks from the dashboard is not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
+    await load(); renderTask(data.task.id)
+  }
+}
+</script>
+</body>
+</html>
