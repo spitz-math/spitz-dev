@@ -331,7 +331,12 @@ async function renderTask(id, quiet) {
     const { data: signed } = await sb.storage.from(STUDIO.bucket).createSignedUrls(assets.map(a => a.path), 3600)
     ;(signed || []).forEach((s, i) => { if (s.signedUrl) urls[assets[i].id] = s.signedUrl })
   }
+  const { data: runs } = await sb.from('studio_worker_runs').select('status,detail,created_at,finished_at').eq('task_id', id).order('id', { ascending: false }).limit(1)
   if (openId !== id) return
+  const run = (runs || [])[0]
+  const RUN = { started: 'ChatGPT is working on it', ok: 'ChatGPT finished', error: 'ChatGPT hit a problem', skipped: 'ChatGPT skipped' }
+  const runTxt = run ? `${RUN[run.status] || run.status} · ${ago(run.finished_at || run.created_at)}${run.detail && run.status !== 'ok' ? ' · ' + esc(run.detail.slice(0, 160)) : ''}` : ''
+  const gptTurn = t.turn === 'chatgpt' && t.status === 'open'
   const byId = Object.fromEntries(assets.map(a => [a.id, a]))
   const shown = new Set()
   const thumb = a => { shown.add(a.id); return `<a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>` }
@@ -349,7 +354,7 @@ async function renderTask(id, quiet) {
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
-      <div class="row start"><a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">▶ start ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div></div><button class="btn" id="x">Close</button></div>
+      <div class="row start">${gptTurn ? '<button class="btn gpt" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
@@ -357,6 +362,13 @@ async function renderTask(id, quiet) {
       <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="chatgpt">Send + ChatGPT's turn</button><button class="btn cl" data-a="claude">Send + Claude's turn</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
+  const rb = d.querySelector('#run')
+  if (rb) rb.onclick = async () => {
+    rb.disabled = true; const rs = d.querySelector('#rs'); rs.textContent = 'Waking ChatGPT...'
+    const { data, error } = await sb.rpc('studio_wake_worker', { p_task_id: t.id })
+    rs.innerHTML = error ? `<span class="err">${esc(error.message)}</span>` : data && data.woken ? 'ChatGPT is on it. Its reply shows up here in a minute or two.' : esc((data && data.reason) || 'Not woken.')
+    rb.disabled = false
+  }
   const ta = d.querySelector('#body'); ta.value = draft
   d.querySelectorAll('.compose .btn').forEach(b => b.onclick = () => post(t, b.dataset.a))
   if (!quiet) { const db = d.querySelector('.dbody'); db.scrollTop = db.scrollHeight }
