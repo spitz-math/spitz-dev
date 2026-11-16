@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_line_64.png">
-<link rel="apple-touch-icon" href="burger_line_192.png">
+<link rel="apple-touch-icon" href="icon_180.png">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -24,7 +24,7 @@
   --kody:#fc7301; --chatgpt:#20e6ae; --claude:#b45aff; --done:#6f6e6a; --bad:#ff5a5f; --link:#ff9a3d;
 }
 *{ box-sizing:border-box; }
-html,body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; }
+html,body{ margin:0; overflow-x:hidden; max-width:100%; background:var(--bg); color:var(--ink); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; }
 button,input,textarea,select{ font:inherit; color:inherit; }
 a{ color:var(--link); }
 ::selection{ background:var(--orange); color:#000; }
@@ -51,8 +51,9 @@ header{ display:flex; align-items:center; gap:14px; padding:12px 20px; border-bo
 .chip.on{ border-color:var(--orange); color:var(--orange); }
 main{ padding:18px 20px 40px; }
 .board{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.col, .card{ min-width:0; overflow-wrap:anywhere; }
 @media (max-width:1000px){ .board{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media (max-width:620px){ .board{ grid-template-columns:1fr; } header{ padding:10px 16px; } main{ padding:14px 16px 40px; } }
+@media (max-width:620px){ .board{ grid-template-columns:minmax(0,1fr); } header{ padding:10px 16px; } main{ padding:14px 16px 40px; } }
 .col{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px; min-height:120px; }
 .col.who-kody{ border-color:var(--orange); }
 .col h2{ margin:0 0 10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; color:var(--c); }
@@ -76,8 +77,9 @@ main{ padding:18px 20px 40px; }
 .empty::before{ content:'// '; }
 .who-kody{ --c:var(--kody); } .who-chatgpt{ --c:var(--chatgpt); } .who-claude{ --c:var(--claude); } .who-done{ --c:var(--done); }
 /* layout + side bar (like Checkpoint's) */
-body.signed{ display:grid; grid-template-columns:232px 1fr; min-height:100vh; }
-body.signed.mini{ grid-template-columns:64px 1fr; }
+body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
+body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
+.side, main{ min-width:0; }
 #app{ display:contents; }
 .side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:10px; padding:14px 12px; background:var(--panel); border-right:1px solid var(--orange); overflow:auto; }
 .side svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
@@ -119,7 +121,8 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .list .lh::before{ content:'> '; color:var(--muted); }
 .list .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
 @media (max-width:760px){
-  body.signed, body.signed.mini{ grid-template-columns:1fr; }
+  body.signed, body.signed.mini{ grid-template-columns:minmax(0,1fr); }
+  input, select, textarea{ font-size:16px; }
   .side, .mini .side{ position:sticky; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; border-right:0; border-bottom:1px solid var(--orange); padding:10px 16px; gap:8px; z-index:5; }
   .side .grow, .side .who, .collapse{ display:none; }
   .brand{ padding:0; }
