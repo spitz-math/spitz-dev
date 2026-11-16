@@ -550,7 +550,7 @@ async function renderNow(vis) {
     const s = nowState(t, tm, x), img = latestImg(t, tm), k = t.turn || 'claude'
     if (s.live) anyLive = true
     const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'kody' ? 'Your turn' : `${WHO[t.turn] || 'Claude'}'s turn`
-    const three = tm.slice(0, 3).reverse()
+    const three = tm.slice(0, 3) // newest first
     const prNum = s.pr ? (s.pr.match(/\/pull\/(\d+)/) || [,''])[1] : ''
     return `<article class="now who-${k}" data-id="${t.id}">
       <div class="nh"><span class="pill">${esc(turn)}</span><span class="sub">${esc(t.project)} · last activity ${ago(t.updated_at)} (${clock(t.updated_at)})</span></div>
@@ -676,7 +676,7 @@ async function renderTask(id, quiet) {
     return `<div class="ev who-${e.actor} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
   }
   const items = [...msgs.map(m => ({ at: m.created_at, html: msgHtml(m) })), ...events.map(e => ({ at: e.at, html: evHtml(e) }))]
-    .sort((a, b) => new Date(a.at) - new Date(b.at))
+    .sort((a, b) => new Date(b.at) - new Date(a.at)) // newest first, at the top
   const timeline = items.map(i => i.html).join('')
   const briefRefs = refsHtml(t.refs)
   const loose = assets.filter(a => !shown.has(a.id))
@@ -685,7 +685,7 @@ async function renderTask(id, quiet) {
   const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
   if (quiet && d.dataset.sig === sig && d.dataset.task === id) return
   const oldBody = d.querySelector('.dbody'), oldTa = d.querySelector('#body')
-  const keep = quiet && oldBody ? { top: oldBody.scrollTop, atEnd: oldBody.scrollTop + oldBody.clientHeight >= oldBody.scrollHeight - 30, brief: d.querySelector('details.brief')?.open,
+  const keep = quiet && oldBody ? { top: oldBody.scrollTop, atTop: oldBody.scrollTop < 30, brief: d.querySelector('details.brief')?.open,
     focus: document.activeElement === oldTa, a: oldTa?.selectionStart, b: oldTa?.selectionEnd } : null
   d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
@@ -712,9 +712,9 @@ async function renderTask(id, quiet) {
   const db = d.querySelector('.dbody')
   if (keep) {
     if (keep.brief !== undefined) d.querySelector('details.brief').open = keep.brief
-    db.scrollTop = keep.atEnd ? db.scrollHeight : keep.top
+    db.scrollTop = keep.atTop ? 0 : keep.top
     if (keep.focus) { ta.focus({ preventScroll: true }); try { ta.setSelectionRange(keep.a, keep.b) } catch (e) {} }
-  } else db.scrollTop = db.scrollHeight
+  } else db.scrollTop = 0
 }
 
 async function post(t, action) {
