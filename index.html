@@ -139,7 +139,6 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .nowv .lh::before{ content:'> '; color:var(--muted); }
 .nowv .lh.dn2{ margin-top:26px; color:var(--muted); }
 .nowgrid{ display:grid; gap:16px; }
-.nowgrid.n1{ max-width:980px; }
 @media (min-width:1300px){ .nowgrid.n2{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
 .now.who-kody{ border-color:var(--orange); }
@@ -163,9 +162,9 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .lnk{ background:none; border:0; padding:0; color:var(--link); cursor:pointer; font-size:13px; }
 .lnk:hover{ text-decoration:underline; }
 .acts{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
-.idle{ background:var(--panel); border:1px dashed var(--line); border-radius:6px; padding:22px; color:var(--muted); max-width:980px; }
+.idle{ background:var(--panel); border:1px dashed var(--line); border-radius:6px; padding:22px; color:var(--muted); }
 .idle p{ margin:0 0 12px; }
-.recent{ display:flex; flex-direction:column; gap:6px; max-width:980px; }
+.recent{ display:flex; flex-direction:column; gap:6px; }
 .row1{ display:flex; justify-content:space-between; gap:12px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:9px 12px; cursor:pointer; }
 .row1:hover{ border-color:var(--done); }
 .row1 .t{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -173,6 +172,8 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .recent .lnk{ align-self:flex-start; margin-top:4px; }
 .health{ margin:22px 0 0; font-size:12px; color:var(--muted); }
 .health.bad, .health b{ color:var(--bad); }
+/* one task: use the whole width, with a big picture beside the messages */
+@media (min-width:761px){ .nowgrid.n1 .nb2{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); } .nowgrid.n1 .art img{ max-height:min(560px,60vh); } .nowgrid.n1 .clip{ -webkit-line-clamp:7; } .nowgrid.n2 .nb2{ grid-template-columns:minmax(0,2fr) minmax(0,3fr); } .nowgrid.n2 .art img{ max-height:360px; } }
 @media (max-width:760px){ .nb2{ grid-template-columns:minmax(0,1fr); } .art img{ max-height:260px; } .row1{ flex-direction:column; gap:2px; } .row1 .t{ white-space:normal; } }
 /* drawer */
 .shade{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:none; }
