@@ -190,6 +190,15 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .who{ color:var(--c); font-weight:700; font-size:12px; }
 .who::before{ content:'$ '; color:var(--muted); font-weight:400; }
 .tag{ color:var(--muted); }
+.dhead .sub, .state{ overflow-wrap:anywhere; }
+@media (max-width:760px){ #rs .state{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; } #rs .nx{ display:none; } }
+.ev{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted); padding:1px 0 1px 12px; border-left:2px solid var(--line); margin:-10px 0 14px; }
+.ev .at{ font-variant-numeric:tabular-nums; }
+.ev .who2{ color:var(--c); }
+.ev.who-system{ --c:var(--orange); }
+.ev .d{ flex:1 1 220px; min-width:0; overflow-wrap:anywhere; color:var(--ink); opacity:.8; }
+.ev.good .d{ opacity:1; }
+.ev.bad .d{ color:var(--bad); opacity:1; }
 .tag::before{ content:'['; } .tag::after{ content:']'; }
 .thumbs{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
 .thumb{ background:repeating-conic-gradient(#1b1c1f 0 25%,#131416 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:6px; max-width:100%; text-decoration:none; }
@@ -200,6 +209,10 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .compose textarea{ width:100%; min-height:72px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px; caret-color:var(--orange); }
 @media all{ .compose .hint{ margin:6px 0 2px; font-size:12px; } }
 .compose textarea:focus{ border-color:var(--orange); outline:none; }
+.qr{ margin-top:12px; }
+.qr textarea{ width:100%; min-height:56px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; caret-color:var(--orange); }
+.qr textarea:focus{ border-color:var(--orange); outline:none; }
+.qr .row{ margin-top:6px; }
 .start{ margin-top:8px; } a.btn{ text-decoration:none; display:inline-block; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
 .err{ color:var(--bad); font-size:12px; }
@@ -255,6 +268,8 @@ async function start() {
   if (!session) return signIn()
   shell(); await load()
   setInterval(() => { if (!document.hidden && !busy) load() }, 20000)
+  // while ChatGPT is mid-step, refresh the open view every 5 seconds so progress shows as it happens
+  setInterval(() => { if (document.hidden || busy || !(nowLive || drawerLive)) return; if (openId) renderTask(openId, true); if (view === 'now') renderBoard() }, 5000)
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) load() })
 }
 
@@ -342,12 +357,13 @@ function setPassword() {
   const em = document.getElementById('who').textContent
   st.innerHTML = `<form id="sp" class="term"><input type="email" autocomplete="username" value="${esc(em)}" hidden><label for="np" class="prompt">&gt; new password</label>
     <input id="np" type="password" autocomplete="new-password" minlength="12" required placeholder="tap for a strong password">
-    <button class="btn primary" type="submit">save</button></form>`
+    <button class="btn primary" type="submit">save</button></form>
+    <div class="sub hint">Saving a new password signs out every other session, including the Sprite Drop connectors in ChatGPT and Claude. Reconnect both afterwards.</div>`
   document.getElementById('np').focus()
   document.getElementById('sp').onsubmit = async e => {
     e.preventDefault()
     const { error } = await sb.auth.updateUser({ password: document.getElementById('np').value })
-    st.innerHTML = error ? `<span class="err">Couldn't save the password: ${esc(error.message)}</span>` : 'Password saved. In the phone app, sign in with your email and this password.'
+    st.innerHTML = error ? `<span class="err">Couldn't save the password: ${esc(error.message)}</span>` : 'Password saved. In the phone app, sign in with your email and this password. Then reconnect Sprite Drop in ChatGPT and Claude (a new password signs them out).'
   }
 }
 
@@ -430,6 +446,32 @@ async function signedUrls(assets) {
   return id => urlCache[id] && urlCache[id].url
 }
 const clock = t => new Date(t).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })
+const clockS = t => new Date(t).toLocaleTimeString([], { hour:'numeric', minute:'2-digit', second:'2-digit' })
+const secs = t => (Date.now() - new Date(t)) / 1000
+const dur = s => s < 60 ? 'under a minute' : s < 3600 ? Math.floor(s / 60) + ' min' : Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min'
+const STALE_S = 45 // no heartbeat for this long while "working" = may be stalled (the worker beats every 10 s)
+let nowLive = false, drawerLive = false
+// ChatGPT worker run -> plain state. Shared by the Now card and the task drawer.
+function runState(t, run, gw) {
+  if (!run && !gw) return null
+  const cap = s => s ? s[0].toUpperCase() + s.slice(1) : ''
+  if (run && run.status === 'started') {
+    const hb = run.heartbeat || run.at, pics = run.pictures ? ` · ${run.saved || 0} of ${run.pictures} picture${run.pictures > 1 ? 's' : ''} saved` : ''
+    if (secs(hb) > STALE_S) return { cls: 'warn', hold: true, label: 'No recent update—may be stalled', detail: `last confirmed ${clockS(hb)} while ${run.step || 'starting'}${pics}`, next: 'The watchdog checks every minute. If the run stopped, it is marked stopped here with a Retry button, and you get one phone alert.' }
+    return { cls: 'work', live: true, label: 'ChatGPT: ' + (run.step || 'starting'), detail: `run started ${clock(run.at)}, ${dur(secs(run.at))} so far · last update ${clockS(hb)}${pics}`, next: 'Nothing to do. You get a notification when it hands off.' }
+  }
+  if (run && (run.status === 'stalled' || run.status === 'error') && t.turn === 'chatgpt' && t.status === 'open')
+    return { cls: 'bad', label: run.status === 'stalled' ? 'ChatGPT stopped' : 'ChatGPT hit a problem', detail: (run.detail || '').slice(0, 300), next: 'Press Retry to carry on. Pictures already saved are kept and not redrawn.', retry: run.id }
+  if (run && run.status === 'error' && run.version === t.version) return { cls: 'bad', label: 'ChatGPT hit a problem', detail: (run.detail || '').slice(0, 300), next: 'Fix the cause, then hand it back to ChatGPT.' }
+  if (t.turn === 'chatgpt' && gw && secs(gw.at) < 3600 && !(run && new Date(run.at) > new Date(gw.at))) {
+    if (gw.waiting) return { cls: 'work', live: true, label: 'Waking ChatGPT', detail: `request sent ${clockS(gw.at)}, waiting for an answer` }
+    if (gw.code >= 200 && gw.code < 300) return secs(gw.at) > 60
+      ? { cls: 'warn', label: 'Wake accepted, but ChatGPT never started', detail: `accepted ${clockS(gw.at)}, nothing since`, next: 'Run ChatGPT now. If it happens again, the worker itself is failing.', run: true }
+      : { cls: 'work', live: true, label: 'Wake accepted, starting', detail: `accepted ${clockS(gw.at)}` }
+    return { cls: 'bad', label: 'Wake failed', detail: gw.error || `HTTP ${gw.code}`, next: 'Run ChatGPT now to try again.', run: true }
+  }
+  return null
+}
 const mins = t => (Date.now() - new Date(t)) / 60e3
 const prOf = list => { for (const r of list) if (r.type === 'pr' || (r.url && /\/pull\/\d+/.test(r.url))) return r.url; return null }
 
@@ -449,25 +491,28 @@ function nowState(t, msgs, x) {
   }
   const run = x && x.run, wake = x && x.wake
   if (t.turn === 'chatgpt') {
-    if (run && run.status === 'started' && mins(run.at) < 10) return Object.assign(st, { cls: 'work', label: 'ChatGPT is working', detail: `started ${ago(run.at)}`, next: 'Nothing to do. You get a notification when it hands off.' })
-    if (run && run.status === 'error' && run.version === t.version) return Object.assign(st, { cls: 'bad', label: 'ChatGPT hit a problem', detail: first(run.detail).slice(0, 200), next: 'Fix the cause, then run ChatGPT again.' })
-    Object.assign(st, { label: 'Queued for ChatGPT', detail: 'not started yet', next: 'It usually starts within a minute. If not, run it now.', run: true })
+    const rs = runState(t, run, x && x.gptwake)
+    if (rs) return Object.assign(st, rs)
+    Object.assign(st, { label: 'Queued for ChatGPT', detail: 'assigned, not started yet', next: 'It usually starts within a minute. If not, run it now.', run: true })
   } else {
     if (!x) return Object.assign(st, { label: "Claude's turn", detail: 'worker status shows once the dashboard update is applied', next: 'You get a notification when Claude hands off.' })
     if (wake && wake.version === t.version) {
       if (wake.waiting) Object.assign(st, { cls: 'work', label: 'Waking Claude', detail: `sent ${ago(wake.at)}` })
+      else if (x.read && x.read.claude) Object.assign(st, { cls: 'work', label: 'Claude is working', detail: `opened the task ${clockS(x.read.claude)}, no reply yet`, next: 'You get a notification when Claude hands off.' })
       else if (wake.code >= 200 && wake.code < 300) {
-        Object.assign(st, { cls: 'work', label: 'Claude was woken', detail: `${ago(wake.at)}, no reply yet`, next: 'Claude usually answers within a few minutes.' })
-        if (mins(wake.at) > 10) Object.assign(st, { cls: 'warn', next: 'No reply for over 10 minutes. Its Sprite Drop sign-in may have expired: reconnect it in Claude.' })
+        Object.assign(st, { cls: 'work', label: 'Wake accepted, Claude has not opened the task yet', detail: `accepted ${clockS(wake.at)}`, next: 'Claude usually opens it within a few minutes.' })
+        if (mins(wake.at) > 10) Object.assign(st, { cls: 'warn', next: 'Not opened after 10 minutes. Its Sprite Drop sign-in may have expired: reconnect it in Claude.' })
       } else Object.assign(st, { cls: 'warn', label: 'Wake failed, retrying', detail: `last try ${ago(wake.at)}`, next: 'It retries up to 3 times, then the hourly check picks it up.' })
-    } else Object.assign(st, { label: 'Queued for Claude', detail: 'not woken yet', next: 'The hourly check (6 AM to 10 PM) picks it up at :07.' })
+    } else if (x.read && x.read.claude) Object.assign(st, { cls: 'work', label: 'Claude is working', detail: `opened the task ${clockS(x.read.claude)}, no reply yet` })
+    else Object.assign(st, { label: 'Queued for Claude', detail: 'not woken yet', next: 'The hourly check (6 AM to 10 PM) picks it up at :07.' })
   }
-  if (mins(t.updated_at) > 30 && st.cls !== 'bad') Object.assign(st, { cls: 'warn', detail: st.detail + ` · no movement for ${Math.round(mins(t.updated_at))} min` })
+  if (mins(t.updated_at) > 30 && st.cls !== 'bad' && !st.live && st.cls !== 'warn') Object.assign(st, { cls: 'warn', detail: st.detail + ` · no movement for ${Math.round(mins(t.updated_at))} min` })
   if (x && x.handoffs >= 8) st.next = `Passed back and forth ${x.handoffs} times without you. Open it and decide.`
   return st
 }
 
 let nowSeq = 0, confirmDone = null
+const qrDraft = {} // unsent replies typed on the Now cards, kept across refreshes
 async function renderNow(vis) {
   const b = document.getElementById('board'), seq = ++nowSeq
   const active = vis.filter(t => t.status !== 'done').sort((a, c) => ((c.turn === 'kody') - (a.turn === 'kody')) || (new Date(c.updated_at) - new Date(a.updated_at)))
@@ -499,9 +544,11 @@ async function renderNow(vis) {
     for (const m of tm) for (const r of (m.refs || [])) if (r.type === 'asset' && byId[r.id]) return byId[r.id]
     return assets.find(a => a.task_id === t.id) || (t.refs || []).map(r => byId[r.id]).find(Boolean) || null
   }
+  let anyLive = false
   const cardHtml = t => {
     const tm = msgs.filter(m => m.task_id === t.id), x = extra[t.id] && !(extra[t.id].noWake && t.turn === 'claude') ? extra[t.id] : null
     const s = nowState(t, tm, x), img = latestImg(t, tm), k = t.turn || 'claude'
+    if (s.live) anyLive = true
     const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'kody' ? 'Your turn' : `${WHO[t.turn] || 'Claude'}'s turn`
     const three = tm.slice(0, 3).reverse()
     const prNum = s.pr ? (s.pr.match(/\/pull\/(\d+)/) || [,''])[1] : ''
@@ -515,14 +562,16 @@ async function renderNow(vis) {
         <div class="feed">${three.map(m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
           <button class="lnk" data-open="${t.id}">Full history${tm.length ? ` (${tm.length} message${tm.length === 1 ? '' : 's'})` : ''} →</button></div>
       </div>
+      <div class="qr"><textarea data-qr="${t.id}" placeholder="Reply to ChatGPT and Claude..." aria-label="Reply on this task"></textarea>
+        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gpt" data-qa="chatgpt" data-t="${t.id}">Send + ChatGPT's turn</button><button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude's turn</button><span class="sub" data-qs="${t.id}"></span></div></div>
       <div class="acts">${s.pr ? `<a class="btn primary" href="${esc(s.pr)}" target="_blank" rel="noopener">Open PR ${esc(prNum)}</a>` : ''}
-        <button class="btn" data-open="${t.id}">Reply</button>
-        ${s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
+        ${s.retry ? `<button class="btn gpt" data-retry="${s.retry}" data-t="${t.id}">Retry</button>` : s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
         <button class="btn dn" data-done="${t.id}">${confirmDone === t.id ? 'Tap again to mark done' : 'Mark done'}</button><span class="sub" data-msg="${t.id}"></span></div>
     </article>`
   }
   const h = health, jobsOk = h && (h.jobs || []).every(j => j.ok !== false)
   const healthHtml = !h ? '' : `<p class="health ${h.phones && jobsOk ? '' : 'bad'}">Phone alerts: ${h.phones ? `${h.phones} phone${h.phones > 1 ? 's' : ''}` : '<b>no phone saved, tap the bell on your phone</b>'}${h.last_push ? ` · last sent ${clock(h.last_push.at)} ${h.last_push.code === 200 ? '✓' : '<b>failed</b>'}` : ''} · ${jobsOk ? 'checks running' : '<b>a background check failed</b>'}</p>`
+  nowLive = anyLive
   const wasNow = b.className === 'nowv'
   b.className = 'nowv'
   const html = `<h2 class="lh">Now <span class="count">${active.length}</span></h2>
@@ -531,10 +580,16 @@ async function renderNow(vis) {
     <div class="recent">${done.map(t => `<button class="row1" data-open="${t.id}"><span class="t">${esc(t.title)}</span><span class="sub">${esc(t.project)} · ${ago(t.updated_at)}</span></button>`).join('') || '<div class="empty">nothing yet</div>'}
       <button class="lnk" id="older">Older history →</button></div>${healthHtml}`
   if (wasNow && b.dataset.html === html) return
+  if (wasNow && document.activeElement && document.activeElement.matches('textarea[data-qr]')) return // typing: refresh after
   const y = window.scrollY, by = b.scrollTop
   b.dataset.html = html; b.innerHTML = html
   if (y) window.scrollTo(0, y); if (by) b.scrollTop = by
   b.querySelectorAll('[data-open]').forEach(e => e.onclick = () => renderTask(e.dataset.open))
+  b.querySelectorAll('textarea[data-qr]').forEach(ta => { ta.value = qrDraft[ta.dataset.qr] || ''; ta.oninput = () => { qrDraft[ta.dataset.qr] = ta.value } })
+  b.querySelectorAll('[data-qa]').forEach(e => e.onclick = () => {
+    const id = e.dataset.t, t = tasks.find(x => x.id === id); if (!t) return
+    sendMsg(t, e.dataset.qa, b.querySelector(`textarea[data-qr="${id}"]`), b.querySelector(`[data-qs="${id}"]`), b.querySelectorAll(`[data-qa][data-t="${id}"]`), () => { delete qrDraft[id] })
+  })
   b.querySelector('#older').onclick = () => { view = 'done'; pref('view2', view); renderBoard() }
   const n2 = b.querySelector('#new2'); if (n2) n2.onclick = newTask
   b.querySelectorAll('[data-run]').forEach(e => e.onclick = async () => {
@@ -542,6 +597,7 @@ async function renderNow(vis) {
     const { data, error } = await sb.rpc('studio_wake_worker', { p_task_id: e.dataset.run })
     out.textContent = error ? error.message : data && data.woken ? 'ChatGPT is on it.' : ((data && data.reason) || 'Not woken.')
   })
+  b.querySelectorAll('[data-retry]').forEach(e => e.onclick = () => retryRun(e, b.querySelector(`[data-msg="${e.dataset.t}"]`)))
   b.querySelectorAll('[data-done]').forEach(e => e.onclick = async () => {
     const id = e.dataset.done, t = tasks.find(x => x.id === id)
     if (confirmDone !== id) { confirmDone = id; e.textContent = 'Tap again to mark done'; setTimeout(() => { if (confirmDone === id) { confirmDone = null; e.textContent = 'Mark done' } }, 4000); return }
@@ -555,13 +611,21 @@ async function renderNow(vis) {
   })
 }
 
+// Retry a stopped ChatGPT run: the database keeps saved pictures and only reruns the unfinished step
+async function retryRun(btn, out) {
+  btn.disabled = true; out.textContent = 'Retrying...'
+  const { data, error } = await sb.rpc('studio_retry_run', { p_run_id: Number(btn.dataset.retry) })
+  out.innerHTML = error ? `<span class="err">${esc(error.message)}</span>` : data && data.retried ? 'Retrying. Progress shows here as it happens.' : esc((data && data.reason) || 'Not retried.')
+  if (!error && data && data.retried) { nowLive = true; setTimeout(load, 2500) } else btn.disabled = false
+}
+
 // Opens a new chat with the instruction already typed in, so one click (plus Enter, if the app asks) starts that bot on this task.
 const startUrl = (who, t) => {
   const msg = `check Task Drop: task ${t.id} ("${t.title}"). Read it with get_task and do your turn.`
   return (who === 'chatgpt' ? 'https://chatgpt.com/?q=' : 'https://claude.ai/new?q=') + encodeURIComponent(msg)
 }
 
-function closeTask() { openId = null; document.body.classList.remove('open') }
+function closeTask() { openId = null; drawerLive = false; document.body.classList.remove('open') }
 
 async function renderTask(id, quiet) {
   const t = tasks.find(x => x.id === id); if (!t) return
@@ -581,11 +645,18 @@ async function renderTask(id, quiet) {
   if (missing.length) { const q2 = await sb.from('studio_assets').select('id,task_id,file_name,width,height,size_bytes,note,path,created_at').in('id', missing); assets = assets.concat(q2.data || []) }
   const urls = {}
   if (assets.length) { const u = await signedUrls(assets); assets.forEach(a => { if (u(a.id)) urls[a.id] = u(a.id) }) }
-  const { data: runs } = await sb.from('studio_worker_runs').select('status,detail,created_at,finished_at').eq('task_id', id).order('id', { ascending: false }).limit(1)
+  const [{ data: runs }, act] = await Promise.all([
+    sb.from('studio_worker_runs').select('id,status,detail,created_at,finished_at,step,heartbeat_at,task_version,done_assets,pics:plan->images').eq('task_id', id).order('id', { ascending: false }).limit(1),
+    sb.rpc('studio_task_activity', { p_task_id: id })])
   if (openId !== id) return
-  const run = (runs || [])[0]
-  const RUN = { started: 'ChatGPT is working on it', ok: 'ChatGPT finished', error: 'ChatGPT hit a problem', skipped: 'ChatGPT skipped' }
-  const runTxt = run ? `${RUN[run.status] || run.status} · ${ago(run.finished_at || run.created_at)}${run.detail && run.status !== 'ok' ? ' · ' + esc(run.detail.slice(0, 160)) : ''}` : ''
+  const r0 = (runs || [])[0], events = (act && !act.error && act.data) || []
+  const run = r0 && { id: r0.id, status: r0.status, detail: r0.detail, at: r0.created_at, finished: r0.finished_at, step: r0.step, heartbeat: r0.heartbeat_at, version: r0.task_version, pictures: (r0.pics || []).length, saved: (r0.done_assets || []).length }
+  const gw = events.find(e => e.actor === 'chatgpt' && e.kind === 'wake')
+  const rs = runState(t, run, gw && { at: gw.at, code: gw.wake_code, waiting: gw.wake_pending, error: gw.wake_error })
+  drawerLive = !!(rs && rs.live)
+  const RUN = { started: 'ChatGPT is working on it', ok: 'ChatGPT finished', error: 'ChatGPT hit a problem', skipped: 'ChatGPT skipped', stalled: 'ChatGPT stopped' }
+  const runTxt = rs ? `<span class="state ${rs.cls}"><b>${esc(rs.label)}</b>${rs.detail ? ' · ' + esc(rs.detail) : ''}</span>${rs.next ? `<span class="nx"><br>${esc(rs.next)}</span>` : ''}`
+    : run ? `${RUN[run.status] || run.status} · ${ago(run.finished || run.at)}` : ''
   const gptTurn = t.turn === 'chatgpt' && t.status === 'open'
   const byId = Object.fromEntries(assets.map(a => [a.id, a]))
   const shown = new Set()
@@ -598,12 +669,20 @@ async function renderTask(id, quiet) {
   const msgHtml = m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
       ${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}'s turn</span>` : ''}${m.set_status ? `<span>· marked ${esc(m.set_status)}</span>` : ''}</div>
       <div class="pre">${linkify(m.body)}</div>${refsHtml(m.refs)}</div>`
-  const timeline = msgs.map(msgHtml).join('')
+  // one timeline: messages plus what the workers actually did (wakes, steps, saved pictures, failures), oldest first
+  const EVC = { error: 'bad', stalled: 'bad', saved: 'good', handoff: 'good', done: 'good' }
+  const evHtml = e => {
+    const w = e.kind !== 'wake' ? '' : e.wake_pending ? ' · no answer yet' : e.wake_code >= 200 && e.wake_code < 300 ? ` · accepted (HTTP ${e.wake_code})` : ` · <span class="err">failed${e.wake_code ? ' (HTTP ' + e.wake_code + ')' : ''}${e.wake_error ? ': ' + esc(e.wake_error) : ''}</span>`
+    return `<div class="ev who-${e.actor} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
+  }
+  const items = [...msgs.map(m => ({ at: m.created_at, html: msgHtml(m) })), ...events.map(e => ({ at: e.at, html: evHtml(e) }))]
+    .sort((a, b) => new Date(a.at) - new Date(b.at))
+  const timeline = items.map(i => i.html).join('')
   const briefRefs = refsHtml(t.refs)
   const loose = assets.filter(a => !shown.has(a.id))
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
   // background refresh: leave the drawer alone if nothing changed; if something did, keep where you were reading and typing
-  const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.finished_at, assets.length].join('|')
+  const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
   if (quiet && d.dataset.sig === sig && d.dataset.task === id) return
   const oldBody = d.querySelector('.dbody'), oldTa = d.querySelector('#body')
   const keep = quiet && oldBody ? { top: oldBody.scrollTop, atEnd: oldBody.scrollTop + oldBody.clientHeight >= oldBody.scrollHeight - 30, brief: d.querySelector('details.brief')?.open,
@@ -611,7 +690,7 @@ async function renderTask(id, quiet) {
   d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
-      <div class="row start">${gptTurn ? '<button class="btn gpt" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
+      <div class="row start">${rs && rs.retry ? `<button class="btn gpt" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gpt" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
@@ -620,6 +699,7 @@ async function renderTask(id, quiet) {
       <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="chatgpt">Send + ChatGPT's turn</button><button class="btn cl" data-a="claude">Send + Claude's turn</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
+  const rt = d.querySelector('#retry'); if (rt) rt.onclick = () => retryRun(rt, d.querySelector('#rs'))
   const rb = d.querySelector('#run')
   if (rb) rb.onclick = async () => {
     rb.disabled = true; const rs = d.querySelector('#rs'); rs.textContent = 'Waking ChatGPT...'
@@ -638,7 +718,10 @@ async function renderTask(id, quiet) {
 }
 
 async function post(t, action) {
-  const d = document.getElementById('drawer'), cs = d.querySelector('#cs'), ta = d.querySelector('#body')
+  const d = document.getElementById('drawer')
+  return sendMsg(t, action, d.querySelector('#body'), d.querySelector('#cs'), d.querySelectorAll('.compose .btn'))
+}
+async function sendMsg(t, action, ta, cs, btns, onSent) {
   let body = ta.value.trim()
   if (!body) {
     if (action === 'done') body = 'Marked done.'
@@ -650,13 +733,13 @@ async function post(t, action) {
   if (action === 'chatgpt' || action === 'claude') Object.assign(args, { p_set_turn: action, p_set_status: t.status === 'done' ? 'open' : null, p_expected_version: t.version })
   if (action === 'done') Object.assign(args, { p_set_status: 'done', p_expected_version: t.version })
   if (action === 'reopen') Object.assign(args, { p_set_status: 'open', p_set_turn: 'kody', p_expected_version: t.version })
-  busy = true; d.querySelectorAll('.compose .btn').forEach(b => b.disabled = true); cs.textContent = 'Sending...'
+  busy = true; btns.forEach(b => b.disabled = true); cs.textContent = 'Sending...'
   const { data, error } = await sb.rpc('studio_post_message', args)
-  busy = false; d.querySelectorAll('.compose .btn').forEach(b => b.disabled = false)
+  busy = false; btns.forEach(b => b.disabled = false)
   if (error) { cs.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Replies from the dashboard are not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
   if (data && data.conflict) { cs.innerHTML = '<span class="err">Someone posted first. Here is the latest; try again.</span>'; await load(); return }
-  ta.value = ''; cs.innerHTML = '<span class="ok">Sent.</span>'
-  await load()
+  ta.value = ''; if (onSent) onSent(); cs.innerHTML = '<span class="ok">Sent.</span>'
+  ta.blur(); await load()
 }
 
 function newTask() {
