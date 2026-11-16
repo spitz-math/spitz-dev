@@ -7,6 +7,11 @@
 <title>spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_line_64.png">
 <link rel="apple-touch-icon" href="burger_line_192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="spitz.dev">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
@@ -81,6 +86,7 @@ body.signed.mini{ grid-template-columns:64px 1fr; }
 .brand b{ color:var(--orange); }
 .ib{ background:transparent; border:1px solid transparent; border-radius:6px; padding:6px; cursor:pointer; color:var(--muted); display:grid; place-items:center; }
 .ib:hover{ color:var(--orange); border-color:var(--line); }
+.ib.lit{ color:var(--orange); }
 .collapse{ margin-left:auto; }
 .mini .collapse svg{ transform:rotate(180deg); }
 .search{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:6px; padding:0 10px; background:var(--bg); color:var(--muted); cursor:text; }
@@ -159,6 +165,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .login h1{ margin:0 0 26px; font-size:30px; font-weight:700; }
 .login h1 b, .mark b{ color:var(--orange); }
 .term{ display:flex; align-items:center; gap:10px; width:min(520px,100%); border:1px solid var(--orange); border-radius:6px; padding:8px 8px 8px 14px; background:var(--panel); }
+.term[hidden]{ display:none; }
 .term .prompt{ color:var(--orange); white-space:nowrap; }
 .term input{ flex:1; min-width:0; background:transparent; border:0; outline:none; caret-color:var(--orange); padding:6px 0; }
 .login .sub, .login .err{ margin-top:14px; }
@@ -212,14 +219,26 @@ function signIn() {
     <form id="f" class="term"><label for="em" class="prompt">&gt; email</label>
       <input id="em" type="email" required autocomplete="email" spellcheck="false" placeholder="you@example.com">
       <button class="btn primary" type="submit">send sign-in link</button></form>
+    <form id="pf" class="term"><label for="pw" class="prompt">&gt; password</label>
+      <input id="pw" type="password" autocomplete="current-password" required placeholder="for the phone app">
+      <button class="btn primary" type="submit">sign in</button></form>
     <p class="sub" id="say">// private. a sign-in link goes to the owner's email.</p></div>`
   document.getElementById('em').focus()
   document.getElementById('f').onsubmit = async e => {
     e.preventDefault(); const say = document.getElementById('say')
     say.textContent = '// sending...'
     const { error } = await sb.auth.signInWithOtp({ email: document.getElementById('em').value.trim(), options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: false } })
-    say.textContent = error ? '// ' + error.message : '// check your email and open the link on this device.'
+    say.textContent = error ? '// ' + error.message : '// check your email and open the link.'
     say.className = error ? 'err' : 'sub'
+  }
+  // a password works inside the home-screen app, where email links open in Safari instead
+  document.getElementById('pf').onsubmit = async e => {
+    e.preventDefault(); const say = document.getElementById('say')
+    const em = document.getElementById('em').value.trim()
+    if (!em) { say.textContent = '// type your email first.'; say.className = 'err'; return }
+    const { error } = await sb.auth.signInWithPassword({ email: em, password: document.getElementById('pw').value })
+    if (error) { say.textContent = '// ' + error.message; say.className = 'err'; return }
+    location.reload()
   }
 }
 
@@ -233,7 +252,9 @@ const ICON = {
   plus:'<path d="M12 5v14M5 12h14"/>',
   out:'<path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"/>',
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>',
-  chev:'<path d="m15 6-6 6 6 6"/>'
+  chev:'<path d="m15 6-6 6 6 6"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>'
 }
 const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
 let view = pref('view') || 'board', query = ''
@@ -250,7 +271,7 @@ function shell() {
       <nav id="views"></nav>
       <div class="grow"></div>
       <div class="foot"><span class="live" id="live" title="Connected"><i></i><span class="lbl">Live</span></span>
-        <button class="ib" id="rf" title="Refresh">${ico('refresh')}</button><button class="ib" id="out" title="Sign out">${ico('out')}</button></div>
+        <button class="ib" id="bell" title="Phone notifications">${ico('bell')}</button><button class="ib" id="key" title="Set a password for the phone app">${ico('key')}</button><button class="ib" id="rf" title="Refresh">${ico('refresh')}</button><button class="ib" id="out" title="Sign out">${ico('out')}</button></div>
       <div class="sub lbl who" id="who"></div>
     </aside>
     <main><div id="board"></div><p class="sub" id="status"></p></main>
@@ -258,6 +279,8 @@ function shell() {
   const $ = id => document.getElementById(id)
   $('out').onclick = async () => { await sb.auth.signOut(); location.reload() }
   $('rf').onclick = () => load()
+  setupBell($('bell'))
+  $('key').onclick = setPassword
   $('new').onclick = newTask
   $('mini').onclick = () => { const m = document.body.classList.toggle('mini'); pref('side', m ? 'min' : 'full') }
   $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); renderBoard() }
@@ -267,11 +290,48 @@ function shell() {
   sb.auth.getUser().then(({ data }) => { $('who').textContent = data.user ? data.user.email : '' })
 }
 
+// password for the home-screen app (sign-in emails open in Safari, which the app can't see)
+function setPassword() {
+  const st = document.getElementById('status')
+  st.innerHTML = `<form id="sp" class="term"><label for="np" class="prompt">&gt; new password</label>
+    <input id="np" type="password" autocomplete="new-password" minlength="8" required placeholder="8+ characters">
+    <button class="btn primary" type="submit">save</button></form>`
+  document.getElementById('np').focus()
+  document.getElementById('sp').onsubmit = async e => {
+    e.preventDefault()
+    const { error } = await sb.auth.updateUser({ password: document.getElementById('np').value })
+    st.innerHTML = error ? `<span class="err">Couldn't save the password: ${esc(error.message)}</span>` : 'Password saved. In the phone app, sign in with your email and this password.'
+  }
+}
+
+// phone notifications (Web Push). On iPhone this works once the dashboard is on the home screen.
+const swReady = 'serviceWorker' in navigator ? navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).catch(() => null) : Promise.resolve(null)
+const b64u = s => { const p = (s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'); return Uint8Array.from(atob(p), c => c.charCodeAt(0)) }
+async function setupBell(btn) {
+  const iosTab = /iPhone|iPad|iPod/.test(navigator.userAgent) && !navigator.standalone && !matchMedia('(display-mode: standalone)').matches
+  const reg = await swReady
+  const can = reg && 'PushManager' in window && 'Notification' in window
+  const on = can && Notification.permission === 'granted' && !!(await reg.pushManager.getSubscription())
+  btn.classList.toggle('lit', on)
+  btn.title = on ? 'Phone notifications are on' : 'Turn on phone notifications'
+  if (on) { const s = await reg.pushManager.getSubscription(); sb.rpc('studio_save_push', { p_sub: s.toJSON() }) }
+  btn.onclick = async () => {
+    const say = document.getElementById('status')
+    if (iosTab) { say.textContent = 'To get notifications on iPhone: set a password with the key button first, then tap Share, "Add to Home Screen", open spitz.dev from the home screen, sign in with your password, and tap the bell there.'; return }
+    if (!can) { say.textContent = 'This browser cannot show notifications.'; return }
+    if (await Notification.requestPermission() !== 'granted') { say.textContent = 'Notifications are blocked. Allow them in your phone settings for spitz.dev, then tap the bell again.'; return }
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u((await sb.rpc('studio_vapid_public')).data || '') })
+    const { error } = await sb.rpc('studio_save_push', { p_sub: sub.toJSON() })
+    say.textContent = error ? 'Could not turn on notifications: ' + error.message : 'Phone notifications are on. You will get one every time a task changes hands or finishes.'
+    btn.classList.toggle('lit', !error)
+  }
+}
+
 async function load() {
   const { data, error } = await sb.from('studio_tasks').select('*').order('updated_at', { ascending: false }).limit(200)
   const st = document.getElementById('status')
   if (error) { document.getElementById('live').classList.add('off'); st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
-  document.getElementById('live').classList.remove('off'); tasks = data; st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
+  document.getElementById('live').classList.remove('off'); tasks = data; if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
   renderBoard()
   if (openId) renderTask(openId, true)
 }
