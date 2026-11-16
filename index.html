@@ -217,7 +217,7 @@ function signIn() {
   app.innerHTML = `<div class="login"><img src="burger_line_512.png" alt="">
     <h1>spitz<b>.dev</b><span class="cursor" aria-hidden="true"></span></h1>
     <form id="f" class="term"><label for="em" class="prompt">&gt; email</label>
-      <input id="em" type="email" required autocomplete="email" spellcheck="false" placeholder="you@example.com">
+      <input id="em" type="email" required autocomplete="username" spellcheck="false" placeholder="you@example.com">
       <button class="btn primary" type="submit">send sign-in link</button></form>
     <form id="pf" class="term"><label for="pw" class="prompt">&gt; password</label>
       <input id="pw" type="password" autocomplete="current-password" required placeholder="for the phone app">
@@ -293,8 +293,9 @@ function shell() {
 // password for the home-screen app (sign-in emails open in Safari, which the app can't see)
 function setPassword() {
   const st = document.getElementById('status')
-  st.innerHTML = `<form id="sp" class="term"><label for="np" class="prompt">&gt; new password</label>
-    <input id="np" type="password" autocomplete="new-password" minlength="8" required placeholder="8+ characters">
+  const em = document.getElementById('who').textContent
+  st.innerHTML = `<form id="sp" class="term"><input type="email" autocomplete="username" value="${esc(em)}" hidden><label for="np" class="prompt">&gt; new password</label>
+    <input id="np" type="password" autocomplete="new-password" minlength="12" required placeholder="tap for a strong password">
     <button class="btn primary" type="submit">save</button></form>`
   document.getElementById('np').focus()
   document.getElementById('sp').onsubmit = async e => {
