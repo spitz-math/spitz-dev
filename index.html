@@ -134,6 +134,46 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
   nav .nb{ width:auto; padding:6px 8px; } nav .nb .lbl{ display:none; } nav .nb.on .lbl{ display:inline; }
   .foot{ border-top:0; padding-top:0; } .foot .live{ display:none; }
 }
+/* Now view: focused, for 1 or 2 active tasks */
+.nowv .lh{ margin:0 0 12px; font-size:14px; color:var(--orange); }
+.nowv .lh::before{ content:'> '; color:var(--muted); }
+.nowv .lh.dn2{ margin-top:26px; color:var(--muted); }
+.nowgrid{ display:grid; gap:16px; }
+.nowgrid.n1{ max-width:980px; }
+@media (min-width:1300px){ .nowgrid.n2{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
+.now.who-kody{ border-color:var(--orange); }
+.nh{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.pill{ border:1px solid var(--c); color:var(--c); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
+.nt{ margin:8px 0 6px; font-size:17px; line-height:1.35; }
+.state{ font-size:13px; color:var(--ink); }
+.state b{ color:var(--c); }
+.state.work b::after{ content:' ●'; color:var(--c); }
+.state.warn b, .state.bad b{ color:var(--bad); }
+.next{ margin-top:4px; font-size:13px; color:var(--muted); }
+.next.hot{ color:var(--orange2); }
+.nb2{ display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:16px; margin-top:14px; }
+.nb2.noimg{ grid-template-columns:minmax(0,1fr); }
+.art{ display:block; background:repeating-conic-gradient(#1b1c1f 0 25%,#131416 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:8px; text-decoration:none; align-self:start; }
+.art:hover{ border-color:var(--orange); }
+.art img{ display:block; width:100%; height:auto; max-height:300px; object-fit:contain; image-rendering:pixelated; }
+.art .cap{ display:block; font-size:11px; color:var(--muted); margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.feed .msg{ margin:0 0 12px; }
+.clip{ display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; font-size:13px; }
+.lnk{ background:none; border:0; padding:0; color:var(--link); cursor:pointer; font-size:13px; }
+.lnk:hover{ text-decoration:underline; }
+.acts{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+.idle{ background:var(--panel); border:1px dashed var(--line); border-radius:6px; padding:22px; color:var(--muted); max-width:980px; }
+.idle p{ margin:0 0 12px; }
+.recent{ display:flex; flex-direction:column; gap:6px; max-width:980px; }
+.row1{ display:flex; justify-content:space-between; gap:12px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:9px 12px; cursor:pointer; }
+.row1:hover{ border-color:var(--done); }
+.row1 .t{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.row1 .sub{ white-space:nowrap; }
+.recent .lnk{ align-self:flex-start; margin-top:4px; }
+.health{ margin:22px 0 0; font-size:12px; color:var(--muted); }
+.health.bad, .health b{ color:var(--bad); }
+@media (max-width:760px){ .nb2{ grid-template-columns:minmax(0,1fr); } .art img{ max-height:260px; } .row1{ flex-direction:column; gap:2px; } .row1 .t{ white-space:normal; } }
 /* drawer */
 .shade{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:none; }
 .drawer{ position:fixed; top:0; right:0; bottom:0; width:min(760px,100%); background:var(--bg); border-left:1px solid var(--orange); z-index:11; display:none; flex-direction:column; }
@@ -246,6 +286,7 @@ function signIn() {
 }
 
 const ICON = {
+  now:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
   board:'<path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z"/>',
   kody:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>',
   chatgpt:'<path d="M4 17V7l8-4 8 4v10l-8 4z"/><path d="M12 11v10M4 7l8 4 8-4"/>',
@@ -260,8 +301,8 @@ const ICON = {
   bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>'
 }
 const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
-let view = pref('view') || 'board', query = ''
-const VIEWS = [['board','Board'],['kody','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
+let view = pref('view2') || 'now', query = ''
+const VIEWS = [['now','Now'],['board','Board'],['kody','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
 
 function shell() {
   document.body.classList.add('signed')
@@ -353,14 +394,15 @@ function renderBoard() {
     done: t => t.status === 'done'
   }
   document.getElementById('views').innerHTML = VIEWS.map(([k, name]) => {
-    const n = k === 'board' ? vis.filter(t => t.status !== 'done').length : vis.filter(F[k]).length
+    const n = k === 'board' || k === 'now' ? vis.filter(t => t.status !== 'done').length : vis.filter(F[k]).length
     return `<button class="nb who-${k} ${view === k ? 'on' : ''}" data-v="${k}" title="${name}">${ico(k)}<span class="lbl">${name}</span><span class="n">${n || ''}</span></button>`
   }).join('')
-  document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view', view); renderBoard() })
+  document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
   const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
         <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="err">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
   const keyOf = t => F.done(t) ? 'done' : F.kody(t) ? 'kody' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
+  if (view === 'now') { renderNow(vis); return }
   if (view === 'board') {
     b.className = 'board'
     b.innerHTML = ['kody','chatgpt','claude','done'].map(k => {
@@ -373,6 +415,137 @@ function renderBoard() {
     b.innerHTML = `<h2 class="lh">${name} <span class="count">${list.length}</span></h2><div class="grid">${list.map(t => card(t, keyOf(t))).join('') || '<div class="empty">nothing here</div>'}</div>`
   }
   document.querySelectorAll('.card').forEach(c => c.onclick = () => renderTask(c.dataset.id))
+}
+
+// ---- Now view: built for 1 or 2 active tasks. One big card each, real worker state, recent finishes below.
+const urlCache = {}
+async function signedUrls(assets) {
+  const need = assets.filter(a => !urlCache[a.id] || urlCache[a.id].exp < Date.now())
+  if (need.length) {
+    const { data } = await sb.storage.from(STUDIO.bucket).createSignedUrls(need.map(a => a.path), 3600)
+    ;(data || []).forEach((s, i) => { if (s.signedUrl) urlCache[need[i].id] = { url: s.signedUrl, exp: Date.now() + 50 * 60e3 } })
+  }
+  return id => urlCache[id] && urlCache[id].url
+}
+const clock = t => new Date(t).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })
+const mins = t => (Date.now() - new Date(t)) / 60e3
+const prOf = list => { for (const r of list) if (r.type === 'pr' || (r.url && /\/pull\/\d+/.test(r.url))) return r.url; return null }
+
+// Plain-language state from what the workers actually did, not just whose turn it is.
+function nowState(t, msgs, x) {
+  const last = msgs[0], first = s => String(s || '').split('\n').find(l => l.trim()) || ''
+  const pr = prOf([...msgs.flatMap(m => m.refs || []), ...(t.refs || [])])
+  const st = { cls: '', label: '', detail: '', next: '', pr }
+  if (t.status === 'blocked') return Object.assign(st, { cls: 'bad', label: 'Blocked', detail: first(last && last.body).slice(0, 160), next: 'Answer what it needs, then hand it back.' })
+  if (t.turn === 'kody') {
+    st.label = 'Waiting on you'; st.cls = 'you'
+    st.detail = last ? `${WHO[last.author] || last.author} handed it to you ${ago(last.created_at)}` : 'New task'
+    st.next = last && last.kind === 'question' ? 'Answer the question, then hand it back.'
+      : pr ? `Review PR ${(pr.match(/\/pull\/(\d+)/) || [,''])[1]}. To put it live, say "push it" to Claude in chat.`
+      : 'Reply, hand it to ChatGPT or Claude, or mark it done.'
+    return st
+  }
+  const run = x && x.run, wake = x && x.wake
+  if (t.turn === 'chatgpt') {
+    if (run && run.status === 'started' && mins(run.at) < 10) return Object.assign(st, { cls: 'work', label: 'ChatGPT is working', detail: `started ${ago(run.at)}`, next: 'Nothing to do. You get a notification when it hands off.' })
+    if (run && run.status === 'error' && run.version === t.version) return Object.assign(st, { cls: 'bad', label: 'ChatGPT hit a problem', detail: first(run.detail).slice(0, 200), next: 'Fix the cause, then run ChatGPT again.' })
+    Object.assign(st, { label: 'Queued for ChatGPT', detail: 'not started yet', next: 'It usually starts within a minute. If not, run it now.', run: true })
+  } else {
+    if (!x) return Object.assign(st, { label: "Claude's turn", detail: 'worker status shows once the dashboard update is applied', next: 'You get a notification when Claude hands off.' })
+    if (wake && wake.version === t.version) {
+      if (wake.waiting) Object.assign(st, { cls: 'work', label: 'Waking Claude', detail: `sent ${ago(wake.at)}` })
+      else if (wake.code >= 200 && wake.code < 300) {
+        Object.assign(st, { cls: 'work', label: 'Claude was woken', detail: `${ago(wake.at)}, no reply yet`, next: 'Claude usually answers within a few minutes.' })
+        if (mins(wake.at) > 10) Object.assign(st, { cls: 'warn', next: 'No reply for over 10 minutes. Its Sprite Drop sign-in may have expired: reconnect it in Claude.' })
+      } else Object.assign(st, { cls: 'warn', label: 'Wake failed, retrying', detail: `last try ${ago(wake.at)}`, next: 'It retries up to 3 times, then the hourly check picks it up.' })
+    } else Object.assign(st, { label: 'Queued for Claude', detail: 'not woken yet', next: 'The hourly check (6 AM to 10 PM) picks it up at :07.' })
+  }
+  if (mins(t.updated_at) > 30 && st.cls !== 'bad') Object.assign(st, { cls: 'warn', detail: st.detail + ` · no movement for ${Math.round(mins(t.updated_at))} min` })
+  if (x && x.handoffs >= 8) st.next = `Passed back and forth ${x.handoffs} times without you. Open it and decide.`
+  return st
+}
+
+let nowSeq = 0, confirmDone = null
+async function renderNow(vis) {
+  const b = document.getElementById('board'), seq = ++nowSeq
+  const active = vis.filter(t => t.status !== 'done').sort((a, c) => ((c.turn === 'kody') - (a.turn === 'kody')) || (new Date(c.updated_at) - new Date(a.updated_at)))
+  const done = vis.filter(t => t.status === 'done').sort((a, c) => new Date(c.updated_at) - new Date(a.updated_at)).slice(0, 5)
+  const ids = active.map(t => t.id)
+  let msgs = [], assets = [], extra = {}, health = null
+  if (ids.length) {
+    const [m, a, n] = await Promise.all([
+      sb.from('studio_messages').select('task_id,seq,author,kind,body,refs,set_turn,set_status,created_at').in('task_id', ids).order('seq', { ascending: false }).limit(300),
+      sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('task_id', ids).order('created_at', { ascending: false }).limit(40),
+      sb.rpc('studio_now')])
+    msgs = m.data || []; assets = a.data || []
+    if (!n.error && n.data) { (n.data.tasks || []).forEach(x => extra[x.id] = x); health = n.data.health }
+    else {
+      // before the database update: ChatGPT's runs are still readable directly
+      const r = await sb.from('studio_worker_runs').select('task_id,status,task_version,created_at,finished_at,detail').in('task_id', ids).order('id', { ascending: false }).limit(20)
+      ;(r.data || []).forEach(x => { if (!extra[x.task_id]) extra[x.task_id] = { run: { status: x.status, version: x.task_version, at: x.created_at, detail: x.detail }, noWake: true } })
+    }
+    // a referenced image from another task (art passed along) counts too
+    const refd = [...new Set(msgs.flatMap(m => (m.refs || []).filter(r => r.type === 'asset').map(r => r.id)))].filter(id => !assets.some(x => x.id === id))
+    if (refd.length) { const q = await sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('id', refd); assets = assets.concat(q.data || []) }
+  } else {
+    const n = await sb.rpc('studio_now'); if (!n.error && n.data) health = n.data.health
+  }
+  const url = await signedUrls(assets)
+  if (seq !== nowSeq || view !== 'now') return
+  const byId = Object.fromEntries(assets.map(a => [a.id, a]))
+  const latestImg = (t, tm) => {
+    for (const m of tm) for (const r of (m.refs || [])) if (r.type === 'asset' && byId[r.id]) return byId[r.id]
+    return assets.find(a => a.task_id === t.id) || (t.refs || []).map(r => byId[r.id]).find(Boolean) || null
+  }
+  const cardHtml = t => {
+    const tm = msgs.filter(m => m.task_id === t.id), x = extra[t.id] && !(extra[t.id].noWake && t.turn === 'claude') ? extra[t.id] : null
+    const s = nowState(t, tm, x), img = latestImg(t, tm), k = t.turn || 'claude'
+    const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'kody' ? 'Your turn' : `${WHO[t.turn] || 'Claude'}'s turn`
+    const three = tm.slice(0, 3).reverse()
+    const prNum = s.pr ? (s.pr.match(/\/pull\/(\d+)/) || [,''])[1] : ''
+    return `<article class="now who-${k}" data-id="${t.id}">
+      <div class="nh"><span class="pill">${esc(turn)}</span><span class="sub">${esc(t.project)} · last activity ${ago(t.updated_at)} (${clock(t.updated_at)})</span></div>
+      <h2 class="nt">${esc(t.title)}</h2>
+      <div class="state ${s.cls}"><b>${esc(s.label)}</b>${s.detail ? ' · ' + esc(s.detail) : ''}</div>
+      ${s.next ? `<div class="next ${t.turn === 'kody' || s.cls === 'bad' || s.cls === 'warn' ? 'hot' : ''}">Next: ${esc(s.next)}</div>` : ''}
+      <div class="nb2 ${img ? '' : 'noimg'}">
+        ${img ? `<a class="art" href="${url(img.id) || '#'}" target="_blank" rel="noopener">${url(img.id) ? `<img src="${url(img.id)}" alt="${esc(img.file_name)}">` : ''}<span class="cap">${esc(img.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${img.width}x${img.height}</span></a>` : ''}
+        <div class="feed">${three.map(m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
+          <button class="lnk" data-open="${t.id}">Full history${tm.length ? ` (${tm.length} message${tm.length === 1 ? '' : 's'})` : ''} →</button></div>
+      </div>
+      <div class="acts">${s.pr ? `<a class="btn primary" href="${esc(s.pr)}" target="_blank" rel="noopener">Open PR ${esc(prNum)}</a>` : ''}
+        <button class="btn" data-open="${t.id}">Reply</button>
+        ${s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
+        <button class="btn dn" data-done="${t.id}">${confirmDone === t.id ? 'Tap again to mark done' : 'Mark done'}</button><span class="sub" data-msg="${t.id}"></span></div>
+    </article>`
+  }
+  const h = health, jobsOk = h && (h.jobs || []).every(j => j.ok !== false)
+  const healthHtml = !h ? '' : `<p class="health ${h.phones && jobsOk ? '' : 'bad'}">Phone alerts: ${h.phones ? `${h.phones} phone${h.phones > 1 ? 's' : ''}` : '<b>no phone saved, tap the bell on your phone</b>'}${h.last_push ? ` · last sent ${clock(h.last_push.at)} ${h.last_push.code === 200 ? '✓' : '<b>failed</b>'}` : ''} · ${jobsOk ? 'checks running' : '<b>a background check failed</b>'}</p>`
+  b.className = 'nowv'
+  b.innerHTML = `<h2 class="lh">Now <span class="count">${active.length}</span></h2>
+    ${active.length ? `<div class="nowgrid n${Math.min(active.length, 2)}">${active.map(cardHtml).join('')}</div>` : `<div class="idle"><p>Nothing in progress.</p><button class="btn primary" id="new2">+ New task</button></div>`}
+    <h2 class="lh dn2">Recently finished</h2>
+    <div class="recent">${done.map(t => `<button class="row1" data-open="${t.id}"><span class="t">${esc(t.title)}</span><span class="sub">${esc(t.project)} · ${ago(t.updated_at)}</span></button>`).join('') || '<div class="empty">nothing yet</div>'}
+      <button class="lnk" id="older">Older history →</button></div>${healthHtml}`
+  b.querySelectorAll('[data-open]').forEach(e => e.onclick = () => renderTask(e.dataset.open))
+  b.querySelector('#older').onclick = () => { view = 'done'; pref('view2', view); renderBoard() }
+  const n2 = b.querySelector('#new2'); if (n2) n2.onclick = newTask
+  b.querySelectorAll('[data-run]').forEach(e => e.onclick = async () => {
+    e.disabled = true; const out = b.querySelector(`[data-msg="${e.dataset.run}"]`)
+    const { data, error } = await sb.rpc('studio_wake_worker', { p_task_id: e.dataset.run })
+    out.textContent = error ? error.message : data && data.woken ? 'ChatGPT is on it.' : ((data && data.reason) || 'Not woken.')
+  })
+  b.querySelectorAll('[data-done]').forEach(e => e.onclick = async () => {
+    const id = e.dataset.done, t = tasks.find(x => x.id === id)
+    if (confirmDone !== id) { confirmDone = id; e.textContent = 'Tap again to mark done'; setTimeout(() => { if (confirmDone === id) { confirmDone = null; e.textContent = 'Mark done' } }, 4000); return }
+    confirmDone = null; e.disabled = true; busy = true
+    const { data, error } = await sb.rpc('studio_post_message', { p_task_id: id, p_request_key: key(), p_kind: 'decision', p_body: 'Marked done.', p_refs: [], p_set_status: 'done', p_expected_version: t.version })
+    busy = false
+    const out = b.querySelector(`[data-msg="${id}"]`)
+    if (error) { out.innerHTML = `<span class="err">${esc(error.message)}</span>`; e.disabled = false; return }
+    if (data && data.conflict) { out.innerHTML = '<span class="err">It changed just now. Here is the latest.</span>' }
+    await load()
+  })
 }
 
 // Opens a new chat with the instruction already typed in, so one click (plus Enter, if the app asks) starts that bot on this task.
