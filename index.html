@@ -197,6 +197,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .thumb .cap{ font-size:11px; color:var(--muted); margin-top:4px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .compose{ border-top:1px solid var(--orange); padding:12px 20px 16px; background:var(--panel); }
 .compose textarea{ width:100%; min-height:72px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px; caret-color:var(--orange); }
+@media all{ .compose .hint{ margin:6px 0 2px; font-size:12px; } }
 .compose textarea:focus{ border-color:var(--orange); outline:none; }
 .start{ margin-top:8px; } a.btn{ text-decoration:none; display:inline-block; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
@@ -521,12 +522,17 @@ async function renderNow(vis) {
   }
   const h = health, jobsOk = h && (h.jobs || []).every(j => j.ok !== false)
   const healthHtml = !h ? '' : `<p class="health ${h.phones && jobsOk ? '' : 'bad'}">Phone alerts: ${h.phones ? `${h.phones} phone${h.phones > 1 ? 's' : ''}` : '<b>no phone saved, tap the bell on your phone</b>'}${h.last_push ? ` · last sent ${clock(h.last_push.at)} ${h.last_push.code === 200 ? '✓' : '<b>failed</b>'}` : ''} · ${jobsOk ? 'checks running' : '<b>a background check failed</b>'}</p>`
+  const wasNow = b.className === 'nowv'
   b.className = 'nowv'
-  b.innerHTML = `<h2 class="lh">Now <span class="count">${active.length}</span></h2>
+  const html = `<h2 class="lh">Now <span class="count">${active.length}</span></h2>
     ${active.length ? `<div class="nowgrid n${Math.min(active.length, 2)}">${active.map(cardHtml).join('')}</div>` : `<div class="idle"><p>Nothing in progress.</p><button class="btn primary" id="new2">+ New task</button></div>`}
     <h2 class="lh dn2">Recently finished</h2>
     <div class="recent">${done.map(t => `<button class="row1" data-open="${t.id}"><span class="t">${esc(t.title)}</span><span class="sub">${esc(t.project)} · ${ago(t.updated_at)}</span></button>`).join('') || '<div class="empty">nothing yet</div>'}
       <button class="lnk" id="older">Older history →</button></div>${healthHtml}`
+  if (wasNow && b.dataset.html === html) return
+  const y = window.scrollY, by = b.scrollTop
+  b.dataset.html = html; b.innerHTML = html
+  if (y) window.scrollTo(0, y); if (by) b.scrollTop = by
   b.querySelectorAll('[data-open]').forEach(e => e.onclick = () => renderTask(e.dataset.open))
   b.querySelector('#older').onclick = () => { view = 'done'; pref('view2', view); renderBoard() }
   const n2 = b.querySelector('#new2'); if (n2) n2.onclick = newTask
@@ -573,10 +579,7 @@ async function renderTask(id, quiet) {
   const missing = [...new Set(refIds)].filter(a => !assets.some(x => x.id === a))
   if (missing.length) { const q2 = await sb.from('studio_assets').select('id,task_id,file_name,width,height,size_bytes,note,path,created_at').in('id', missing); assets = assets.concat(q2.data || []) }
   const urls = {}
-  if (assets.length) {
-    const { data: signed } = await sb.storage.from(STUDIO.bucket).createSignedUrls(assets.map(a => a.path), 3600)
-    ;(signed || []).forEach((s, i) => { if (s.signedUrl) urls[assets[i].id] = s.signedUrl })
-  }
+  if (assets.length) { const u = await signedUrls(assets); assets.forEach(a => { if (u(a.id)) urls[a.id] = u(a.id) }) }
   const { data: runs } = await sb.from('studio_worker_runs').select('status,detail,created_at,finished_at').eq('task_id', id).order('id', { ascending: false }).limit(1)
   if (openId !== id) return
   const run = (runs || [])[0]
@@ -598,6 +601,13 @@ async function renderTask(id, quiet) {
   const briefRefs = refsHtml(t.refs)
   const loose = assets.filter(a => !shown.has(a.id))
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
+  // background refresh: leave the drawer alone if nothing changed; if something did, keep where you were reading and typing
+  const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.finished_at, assets.length].join('|')
+  if (quiet && d.dataset.sig === sig && d.dataset.task === id) return
+  const oldBody = d.querySelector('.dbody'), oldTa = d.querySelector('#body')
+  const keep = quiet && oldBody ? { top: oldBody.scrollTop, atEnd: oldBody.scrollTop + oldBody.clientHeight >= oldBody.scrollHeight - 30, brief: d.querySelector('details.brief')?.open,
+    focus: document.activeElement === oldTa, a: oldTa?.selectionStart, b: oldTa?.selectionEnd } : null
+  d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
       <div class="row start">${gptTurn ? '<button class="btn gpt" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
@@ -605,6 +615,7 @@ async function renderTask(id, quiet) {
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
     <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
+      <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. To get an answer, use "Send + ChatGPT's turn" or "Send + Claude's turn".</div>
       <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="chatgpt">Send + ChatGPT's turn</button><button class="btn cl" data-a="claude">Send + Claude's turn</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
@@ -617,7 +628,12 @@ async function renderTask(id, quiet) {
   }
   const ta = d.querySelector('#body'); ta.value = draft
   d.querySelectorAll('.compose .btn').forEach(b => b.onclick = () => post(t, b.dataset.a))
-  if (!quiet) { const db = d.querySelector('.dbody'); db.scrollTop = db.scrollHeight }
+  const db = d.querySelector('.dbody')
+  if (keep) {
+    if (keep.brief !== undefined) d.querySelector('details.brief').open = keep.brief
+    db.scrollTop = keep.atEnd ? db.scrollHeight : keep.top
+    if (keep.focus) { ta.focus({ preventScroll: true }); try { ta.setSelectionRange(keep.a, keep.b) } catch (e) {} }
+  } else db.scrollTop = db.scrollHeight
 }
 
 async function post(t, action) {
