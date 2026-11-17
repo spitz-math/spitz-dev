@@ -37,6 +37,22 @@ header .mark{ width:40px; height:auto; margin-left:auto; }
 .sub{ color:var(--muted); font-size:12px; }
 /* hero: the portal (custom line art, void/portal.png) inside a slowly turning dashed ring. */
 .hero{ text-align:center; padding:18px 0 22px; }
+/* black hole (decoration only, aria-hidden): a dark shadow with a thin photon ring and a tilted violet accretion disk
+   behind the portal, plus a faint, far-off second one and a sparse starfield. Disk dashes drift slowly; still under reduced motion. */
+.sky{ position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
+  background-image:radial-gradient(1px 1px at 12% 18%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 82% 12%, #F2F0F8 50%, transparent 51%),
+    radial-gradient(1px 1px at 68% 34%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 22% 62%, #F2F0F8 50%, transparent 51%),
+    radial-gradient(1px 1px at 90% 58%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 6% 86%, #F2F0F8 50%, transparent 51%),
+    radial-gradient(1px 1px at 46% 92%, #CEADFF 50%, transparent 51%), radial-gradient(1.5px 1.5px at 34% 8%, #F2F0F8 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 74% 80%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 56% 48%, #F2F0F8 50%, transparent 51%); }
+.far{ position:fixed; right:-60px; bottom:-40px; width:340px; height:auto; pointer-events:none; z-index:-1; opacity:.45; }
+.hero{ position:relative; isolation:isolate; }
+.bh{ position:absolute; left:50%; top:84px; width:560px; max-width:none; height:auto; transform:translate(-50%,-50%); z-index:-1; pointer-events:none; overflow:visible; }
+.bh .flow{ animation:orbit 40s linear infinite; }
+.bh .flow.f2{ animation-duration:62s; animation-direction:reverse; }
+.hero.gulping .bh .flow{ animation-duration:4s; }
+@keyframes orbit{ to{ stroke-dashoffset:-600; } }
+
 .portal{ width:132px; height:132px; margin:0 auto 14px; position:relative; }
 .portal .ring{ position:absolute; inset:4px; border-radius:50%; border:2px dashed rgba(206,173,255,.55); animation:spin 28s linear infinite; }
 .portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(173,92,255,.35)); }
@@ -94,11 +110,18 @@ h1 b{ color:var(--am); }
 .toast[hidden]{ display:none; }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
 .later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
-@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img{ animation:none; } }
-@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .go .btn.primary{ flex:1; } }
+@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow{ animation:none; } }
+@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:420px; top:70px; } .far{ display:none; } .go .btn.primary{ flex:1; } }
 </style>
 </head>
 <body>
+<div class="sky" aria-hidden="true"></div>
+<svg class="far" viewBox="-170 -90 340 180" aria-hidden="true" focusable="false"><g transform="rotate(14)">
+    <circle r="70" fill="url(#bhHalo2)"/><path d="M-30 0 A30 26 0 0 1 30 0" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".5"/>
+    <circle r="22" fill="#06060B"/><circle r="22.5" fill="none" stroke="#CEADFF" stroke-width="1" opacity=".55"/>
+    <path d="M-110 0 A110 16 0 0 0 110 0" fill="none" stroke="#AD5CFF" stroke-width="1.2" opacity=".55"/>
+    <path d="M-110 0 A110 16 0 0 1 -24 -14" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".35"/><path d="M24 -14 A110 16 0 0 1 110 0" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".35"/></g>
+    <defs><radialGradient id="bhHalo2"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".18"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient></defs></svg>
 <div class="wrap" id="app"><p class="sub" style="padding-top:30vh;text-align:center">// opening the void...</p></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
@@ -178,7 +201,32 @@ async function start() {
 
 function shell() {
   app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><img class="mark" src="burger_void_192.png" alt="" width="40" height="32"><span class="sub" id="mode"></span></header>
-    <section class="hero"><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><img src="portal.png" alt="" width="512" height="512"></div>
+    <section class="hero" id="hero"><svg class="bh" viewBox="-280 -140 560 280" aria-hidden="true" focusable="false">
+        <defs>
+          <radialGradient id="bhHalo"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".22"/><stop offset=".45" stop-color="#AD5CFF" stop-opacity=".07"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient>
+          <linearGradient id="bhDisk" x1="-1" x2="1" y1="0" y2="0" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#CEADFF" stop-opacity=".0"/><stop offset=".22" stop-color="#CEADFF" stop-opacity=".9"/><stop offset=".55" stop-color="#AD5CFF" stop-opacity=".55"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></linearGradient>
+          <linearGradient id="bhDiskL" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#AD5CFF" stop-opacity="0"/><stop offset=".25" stop-color="#CEADFF" stop-opacity=".85"/><stop offset=".7" stop-color="#AD5CFF" stop-opacity=".45"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></linearGradient>
+        </defs>
+        <circle r="140" fill="url(#bhHalo)"/>
+        <g transform="rotate(-9)">
+          <!-- back half of the disk, bent up over the shadow by the lensing -->
+          <path d="M-96 0 A96 78 0 0 1 96 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2" opacity=".55"/>
+          <path d="M-112 0 A112 92 0 0 1 112 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1" opacity=".3"/>
+          <!-- far half of the flat disk -->
+          <path d="M-250 0 A250 40 0 0 1 250 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1.2" opacity=".5"/>
+          <path class="flow f2" d="M-200 0 A200 30 0 0 1 200 0" fill="none" stroke="#CEADFF" stroke-width="1" stroke-dasharray="2 14" opacity=".45"/>
+        </g>
+        <!-- the shadow and its photon ring -->
+        <circle r="74" fill="#06060B"/>
+        <circle r="75" fill="none" stroke="#CEADFF" stroke-width="1.4" opacity=".7"/>
+        <circle r="79" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".3"/>
+        <g transform="rotate(-9)">
+          <!-- near half of the disk, passing in front of the shadow -->
+          <path d="M-250 0 A250 40 0 0 0 250 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2.2" opacity=".75"/>
+          <path d="M-170 0 A170 24 0 0 0 170 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1.2" opacity=".45"/>
+          <path class="flow" d="M-220 0 A220 34 0 0 0 220 0" fill="none" stroke="#CEADFF" stroke-width="1.2" stroke-dasharray="3 18" opacity=".55"/>
+        </g>
+      </svg><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><img src="portal.png" alt="" width="512" height="512"></div>
       <h1>the <b>void</b></h1><p class="tag">Get it out of your head. Into the void.</p></section>
     ${preview ? `<div class="banner"><b>Local preview.</b> Ideas are saved only in this browser on this device, until the void_ideas database update is applied. Nothing is synced yet.</div>` : ''}
     <form class="cap" id="cap" autocomplete="off">
@@ -215,7 +263,8 @@ function sayQuote() {
   let i; do { i = Math.floor(Math.random() * QUOTES.length) } while (i === lastQuote && QUOTES.length > 1)
   lastQuote = i; document.getElementById('quote').textContent = QUOTES[i]
 }
-function gulp() { const p = document.getElementById('portal'); p.classList.remove('gulp'); void p.offsetWidth; p.classList.add('gulp') }
+function gulp() { const p = document.getElementById('portal'), h = document.getElementById('hero'); p.classList.remove('gulp'); void p.offsetWidth; p.classList.add('gulp')
+  h.classList.add('gulping'); clearTimeout(gulp.t); gulp.t = setTimeout(() => h.classList.remove('gulping'), 1600) }
 function setErr(m) { const e = document.getElementById('err'); if (e) e.textContent = m }
 
 function renderList() {
