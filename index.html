@@ -23,8 +23,8 @@
   --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
   --orange:#FF892E; --orange2:#FFAD74;
   /* identity: borders/marks use the -line shade; small text uses the -text shade */
-  --spitz:#FF892E; --chatgpt:#19CFF5; --claude:#EF3B36; --done:#A5A8B5;
-  --spitz-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#FF4F4F; --done-text:#A5A8B5;
+  --spitz:#FF892E; --chatgpt:#19CFF5; --gptw:#2BD97C; --claude:#EF3B36; --done:#A5A8B5;
+  --spitz-text:#FFAC6F; --chatgpt-text:#9BEAFF; --gptw-text:#8CF5B9; --claude-text:#FF4F4F; --done-text:#A5A8B5;
   --void:#AD5CFF; --void-text:#CEADFF;
   /* status: always paired with a word, and an icon where it is shown alone */
   --good:#8ED8B1; --warn:#E9BD70; --bad:#FF8293;
@@ -51,6 +51,7 @@ header{ display:flex; align-items:center; gap:14px; padding:12px 20px; border-bo
 .btn.primary{ border-color:var(--orange); color:var(--orange); font-weight:700; }
 .btn.primary:hover{ background:var(--orange); color:#000; }
 .btn.gpt{ border-color:var(--chatgpt); color:var(--chatgpt-text); }
+.btn.gptw{ border-color:var(--gptw); color:var(--gptw-text); }
 .btn.cl{ border-color:var(--claude); color:var(--claude-text); }
 .btn.dn{ color:var(--muted); }
 .btn:disabled{ opacity:.5; cursor:default; }
@@ -71,6 +72,8 @@ main{ padding:18px 20px 40px; }
 .count{ color:var(--muted); font-weight:400; }
 .card{ display:block; width:100%; text-align:left; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:8px; cursor:pointer; }
 .card:hover{ border-color:var(--c,var(--orange)); }
+.card.who-gptw, .card.who-chatgpt{ border-left:3px solid var(--c); }
+.card .m .tw{ color:var(--ct,var(--muted)); }
 .card .t{ font-weight:600; }
 .card .m{ color:var(--muted); font-size:12px; margin-top:4px; display:flex; gap:10px; flex-wrap:wrap; }
 .empty{ color:var(--muted); font-size:13px; padding:6px 2px; }
@@ -91,7 +94,7 @@ main{ padding:18px 20px 40px; }
 .card .thumb{ float:right; width:56px; height:56px; object-fit:contain; image-rendering:pixelated; margin:0 0 6px 10px; border-radius:4px; border:1px solid var(--line);
   background:repeating-conic-gradient(#272A3B 0 25%,#1D202E 0 50%) 0 0/10px 10px; }
 .card::after{ content:''; display:block; clear:both; }
-.who-spitz{ --c:var(--spitz); --ct:var(--spitz-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
+.who-spitz{ --c:var(--spitz); --ct:var(--spitz-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-gptw{ --c:var(--gptw); --ct:var(--gptw-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
 /* layout + side bar (like Checkpoint's) */
 body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
 body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
@@ -158,7 +161,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .nowgrid{ display:grid; gap:16px; }
 @media (min-width:1300px){ .nowgrid.n2{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
-.now.who-spitz, .now.who-chatgpt, .now.who-claude{ border:2px solid var(--c); border-top-width:3px; }
+.now.who-spitz, .now.who-chatgpt, .now.who-gptw, .now.who-claude{ border:2px solid var(--c); border-top-width:3px; }
 .nh{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .pill{ border:1px solid var(--c); color:var(--ct,var(--c)); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
 .nt{ margin:8px 0 6px; font-size:17px; line-height:1.35; }
@@ -280,6 +283,8 @@ const nid = v => v == null ? v : ({ kody:'spitz', chatgpt:'openai_worker' }[v] |
 const oid = v => v == null || IDV >= 2 ? v : ({ spitz:'kody', openai_worker:'chatgpt' }[v] || v)
 const norm = r => { if (r) for (const k of ['turn', 'created_by', 'author', 'set_turn', 'actor']) if (k in r) r[k] = nid(r[k]); return r }
 const grp = v => GROUP[v] || 'claude'
+// colour per identity: your ChatGPT chat is cyan, the automatic ChatGPT worker is green (both sit in the ChatGPT column)
+const CLS = v => nid(v) === 'openai_worker' ? 'gptw' : grp(nid(v))
 async function detectScheme() { const r = await sb.rpc('studio_schema'); IDV = !r.error && r.data && r.data.identities >= 2 ? 2 : 1 }
 const app = document.getElementById('app')
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
@@ -449,8 +454,8 @@ function renderBoard() {
     return `<button class="nb who-${k} ${view === k ? 'on' : ''}" data-v="${k}" title="${name}">${ico(k)}<span class="lbl">${name}</span><span class="n">${n || ''}</span></button>`
   }).join('')
   document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
-  const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
-        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span>${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
+  const card = (t, k) => `<button class="card who-${k === 'chatgpt' ? CLS(t.turn) : k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span class="tw">${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
   const keyOf = t => F.done(t) ? 'done' : F.spitz(t) ? 'spitz' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
@@ -629,7 +634,7 @@ async function renderNow(vis) {
   let anyLive = false
   const cardHtml = t => {
     const tm = msgs.filter(m => m.task_id === t.id), x = extra[t.id] && !(extra[t.id].noWake && t.turn === 'claude') ? extra[t.id] : null
-    const s = nowState(t, tm, x), img = latestImg(t, tm), k = grp(t.turn)
+    const s = nowState(t, tm, x), img = latestImg(t, tm), k = CLS(t.turn)
     if (s.live) anyLive = true
     const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'spitz' ? 'Your turn' : `${WHO[t.turn] || 'Claude worker'}'s turn`
     const three = tm.slice(0, 3) // newest first
@@ -641,11 +646,11 @@ async function renderNow(vis) {
       ${s.next ? `<div class="next ${t.turn === 'spitz' || s.cls === 'bad' || s.cls === 'warn' ? 'hot' : ''}">Next: ${esc(s.next)}</div>` : ''}
       <div class="nb2 ${img ? '' : 'noimg'}">
         ${img ? `<a class="art" href="${url(img.id) || '#'}" target="_blank" rel="noopener">${url(img.id) ? `<img src="${url(img.id)}" alt="${esc(img.file_name)}">` : ''}<span class="cap">${esc(img.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${img.width}x${img.height}</span></a>` : ''}
-        <div class="feed">${three.map(m => `<div class="msg who-${grp(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
+        <div class="feed">${three.map(m => `<div class="msg who-${CLS(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
           <button class="lnk" data-open="${t.id}">Full history${tm.length ? ` (${tm.length} message${tm.length === 1 ? '' : 's'})` : ''} →</button></div>
       </div>
       <div class="qr"><textarea data-qr="${t.id}" placeholder="Reply to ChatGPT and Claude..." aria-label="Reply on this task"></textarea>
-        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gpt" data-qa="openai_worker" data-t="${t.id}">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-qa="chatgpt_chat" data-t="${t.id}" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude worker</button><span class="sub" data-qs="${t.id}"></span></div></div>
+        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gptw" data-qa="openai_worker" data-t="${t.id}">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-qa="chatgpt_chat" data-t="${t.id}" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude worker</button><span class="sub" data-qs="${t.id}"></span></div></div>
       <div class="acts">${s.pr ? `<a class="btn primary" href="${esc(s.pr)}" target="_blank" rel="noopener">Open PR ${esc(prNum)}</a>` : ''}
         ${s.retry ? `<button class="btn gpt" data-retry="${s.retry}" data-t="${t.id}">Retry</button>` : s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
         <button class="btn dn" data-done="${t.id}">${confirmDone === t.id ? 'Tap again to mark done' : 'Mark done'}</button><span class="sub" data-msg="${t.id}"></span></div>
@@ -749,14 +754,14 @@ async function renderTask(id, quiet) {
     const links = refs.filter(r => r.type !== 'asset').map(r => `<div><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.type === 'pr' ? 'Pull request ' + (r.url.match(/\/pull\/(\d+)/) || [,''])[1] : r.url)}</a></div>`).join('')
     return (imgs ? `<div class="thumbs">${imgs}</div>` : '') + links
   }
-  const msgHtml = m => `<div class="msg who-${grp(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
+  const msgHtml = m => `<div class="msg who-${CLS(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
       ${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}'s turn</span>` : ''}${m.set_status ? `<span>· marked ${esc(m.set_status)}</span>` : ''}</div>
       <div class="pre">${linkify(m.body)}</div>${refsHtml(m.refs)}</div>`
   // one timeline: messages plus what the workers actually did (wakes, steps, saved pictures, failures), oldest first
   const EVC = { error: 'bad', stalled: 'bad', saved: 'good', handoff: 'good', done: 'good' }
   const evHtml = e => {
     const w = e.kind !== 'wake' ? '' : e.wake_pending ? ' · no answer yet' : e.wake_code >= 200 && e.wake_code < 300 ? ` · accepted (HTTP ${e.wake_code})` : ` · <span class="err">failed${e.wake_code ? ' (HTTP ' + e.wake_code + ')' : ''}${e.wake_error ? ': ' + esc(e.wake_error) : ''}</span>`
-    return `<div class="ev who-${grp(e.actor)} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
+    return `<div class="ev who-${CLS(e.actor)} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
   }
   const items = [...msgs.map(m => ({ at: m.created_at, html: msgHtml(m) })), ...events.map(e => ({ at: e.at, html: evHtml(e) }))]
     .sort((a, b) => new Date(b.at) - new Date(a.at)) // newest first, at the top
@@ -773,13 +778,13 @@ async function renderTask(id, quiet) {
   d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
-      <div class="row start">${rs && rs.retry ? `<button class="btn gpt" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gpt" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
+      <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
     <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
       <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. The worker buttons start ChatGPT or Claude at once; "my ChatGPT chat" waits for you to open it.</div>
-      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="openai_worker">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude">Send + Claude worker</button>
+      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gptw" data-a="openai_worker">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude">Send + Claude worker</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
   const rt = d.querySelector('#retry'); if (rt) rt.onclick = () => retryRun(rt, d.querySelector('#rs'))
@@ -834,7 +839,7 @@ function newTask() {
       <label class="field"><span>Project (lowercase, like rook-and-ruin)</span><input id="np" required pattern="[a-z0-9][a-z0-9-]{0,39}" list="pl" value="${esc(project !== 'all' ? project : projects[0] || '')}"><datalist id="pl">${projects.map(p => `<option value="${esc(p)}">`).join('')}</datalist></label>
       <label class="field"><span>Title</span><input id="nt" required maxlength="200"></label>
       <label class="field"><span>Brief: the goal, the rules, and what to send back</span><textarea id="nb" required maxlength="8000"></textarea></label>
-      <label class="field"><span>Who goes first</span><select id="nw"><option value="openai_worker">ChatGPT worker (starts at once)</option>${IDV >= 2 ? '<option value="chatgpt_chat">My ChatGPT chat (waits for me)</option>' : ''}<option value="claude">Claude worker (starts at once)</option></select></label>
+      <label class="field"><span>Who goes first</span><select id="nw" required><option value="" disabled selected>Choose who goes first</option><option value="openai_worker">ChatGPT worker (starts at once, costs money)</option>${IDV >= 2 ? '<option value="chatgpt_chat">My ChatGPT chat (waits for me)</option>' : ''}<option value="claude">Claude worker (starts at once)</option></select></label>
       <div class="row"><button class="btn primary" type="submit">Create task</button><span id="ns"></span></div></form>`
   d.querySelector('#x').onclick = closeTask
   d.querySelector('#nf').onsubmit = async e => {

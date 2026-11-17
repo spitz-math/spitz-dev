@@ -46,17 +46,29 @@ async function run(mode) {
   await page.waitForSelector('.col')
   const cols = await page.$$eval('.col', cs => Object.fromEntries(cs.map(c => [c.dataset.k, c.querySelectorAll('.card').length])))
   const schemes = await page.evaluate(() => IDV)
+  if (process.env.SHOT && mode === 2) await page.screenshot({ path: process.env.SHOT })
+  const colours = await page.$$eval('.card', cs => Object.fromEntries(cs.map(c => [c.dataset.id, [...c.classList].find(x => x.startsWith('who-'))])))
+  // new-task form: nothing that starts a run is picked by default, and an empty choice cannot be submitted
+  await page.click('#new')
+  await page.waitForSelector('#nf')
+  const firstPick = await page.$eval('#nw', s => s.value)
+  await page.fill('#np', 'arcade'); await page.fill('#nt', 't'); await page.fill('#nb', 'b')
+  await page.click('#nf button[type=submit]')
+  await page.waitForTimeout(300)
+  const createdWithoutChoice = await page.evaluate(() => window.__calls.some(c => c.fn === 'studio_create_task'))
+  await page.click('#drawer #x')
   // open the worker task and hand it to the worker from the drawer
   await page.click('.card[data-id="t1"]')
   await page.waitForSelector('.compose .btn')
   const buttons = await page.$$eval('.compose .btn', bs => bs.map(b => b.dataset.a))
+  const workerBtn = await page.$eval('.compose .btn[data-a="openai_worker"]', b => b.className)
   await page.fill('#body', 'go')
   await page.click('.compose .btn[data-a="openai_worker"]')
   await page.waitForFunction(() => window.__calls.some(c => c.fn === 'studio_post_message'))
   const sent = await page.evaluate(() => window.__calls.filter(c => c.fn === 'studio_post_message').map(c => c.args.p_set_turn))
   const drawerText = await page.$eval('#drawer', d => d.innerText)
   await browser.close()
-  return { cols, schemes, buttons, sent, errors, drawerText }
+  return { cols, schemes, buttons, sent, errors, drawerText, colours, firstPick, createdWithoutChoice, workerBtn }
 }
 
 ;(async () => {
@@ -75,5 +87,9 @@ async function run(mode) {
   assert.deepStrictEqual(neu.cols, { spitz: 1, chatgpt: 2, claude: 1, done: 0 })
   assert(neu.buttons.includes('chatgpt_chat') && neu.buttons.includes('openai_worker'), 'both ChatGPT handoffs offered')
   assert.deepStrictEqual(neu.sent, ['openai_worker'])
+  assert.strictEqual(neu.colours.t1, 'who-gptw', 'ChatGPT worker card is green')
+  assert.strictEqual(neu.colours.t3, 'who-chatgpt', 'ChatGPT chat card is cyan')
+  assert(/\bgptw\b/.test(neu.workerBtn), 'worker button is green')
+  for (const r of [old, neu]) { assert.strictEqual(r.firstPick, '', 'no default for who goes first'); assert(!r.createdWithoutChoice, 'cannot create without choosing') }
   console.log('ok new database: five identities, separate chat and worker handoffs')
 })().catch(e => { console.error(e); process.exit(1) })
