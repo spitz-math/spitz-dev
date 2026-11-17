@@ -23,8 +23,8 @@
   --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
   --orange:#FF892E; --orange2:#FFAD74;
   /* identity: borders/marks use the -line shade; small text uses the -text shade */
-  --kody:#FF892E; --chatgpt:#19CFF5; --claude:#EF3B36; --done:#A5A8B5;
-  --kody-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#FF4F4F; --done-text:#A5A8B5;
+  --spitz:#FF892E; --chatgpt:#19CFF5; --claude:#EF3B36; --done:#A5A8B5;
+  --spitz-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#FF4F4F; --done-text:#A5A8B5;
   --void:#AD5CFF; --void-text:#CEADFF;
   /* status: always paired with a word, and an icon where it is shown alone */
   --good:#8ED8B1; --warn:#E9BD70; --bad:#FF8293;
@@ -64,7 +64,7 @@ main{ padding:18px 20px 40px; }
 @media (max-width:1000px){ .board{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:620px){ .board{ grid-template-columns:minmax(0,1fr); } header{ padding:10px 16px; } main{ padding:14px 16px 40px; } }
 .col{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px; min-height:120px; }
-.col.who-kody, .col.who-chatgpt, .col.who-claude{ border:2px solid var(--c); }
+.col.who-spitz, .col.who-chatgpt, .col.who-claude{ border:2px solid var(--c); }
 .col h2{ margin:0 0 10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; color:var(--c); }
 .col h2::before{ content:'>'; color:var(--muted); }
 .dot{ display:none; }
@@ -91,7 +91,7 @@ main{ padding:18px 20px 40px; }
 .card .thumb{ float:right; width:56px; height:56px; object-fit:contain; image-rendering:pixelated; margin:0 0 6px 10px; border-radius:4px; border:1px solid var(--line);
   background:repeating-conic-gradient(#272A3B 0 25%,#1D202E 0 50%) 0 0/10px 10px; }
 .card::after{ content:''; display:block; clear:both; }
-.who-kody{ --c:var(--kody); --ct:var(--kody-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
+.who-spitz{ --c:var(--spitz); --ct:var(--spitz-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
 /* layout + side bar (like Checkpoint's) */
 body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
 body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
@@ -158,7 +158,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .nowgrid{ display:grid; gap:16px; }
 @media (min-width:1300px){ .nowgrid.n2{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
-.now.who-kody, .now.who-chatgpt, .now.who-claude{ border:2px solid var(--c); border-top-width:3px; }
+.now.who-spitz, .now.who-chatgpt, .now.who-claude{ border:2px solid var(--c); border-top-width:3px; }
 .nh{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .pill{ border:1px solid var(--c); color:var(--ct,var(--c)); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
 .nt{ margin:8px 0 6px; font-size:17px; line-height:1.35; }
@@ -270,7 +270,17 @@ const STUDIO = {
   supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9',
   bucket: 'studio-assets'
 }
-const WHO = { kody:'You', chatgpt:'ChatGPT', claude:'Claude' }
+// Five identities (database migration 20261118000000_worker_identities). The page works with the database
+// before and after that migration: rows are read into the new names, and writes go out in whatever scheme
+// the database speaks (IDV). chatgpt_chat and claude_thread only exist after the migration.
+const WHO = { spitz:'You', chatgpt_chat:'your ChatGPT chat', openai_worker:'ChatGPT worker', claude:'Claude worker', claude_thread:'Claude thread' }
+const GROUP = { spitz:'spitz', chatgpt_chat:'chatgpt', openai_worker:'chatgpt', claude:'claude', claude_thread:'claude' } // board column + colour
+let IDV = 1
+const nid = v => v == null ? v : ({ kody:'spitz', chatgpt:'openai_worker' }[v] || v) // old 'chatgpt' turn did start the API worker
+const oid = v => v == null || IDV >= 2 ? v : ({ spitz:'kody', openai_worker:'chatgpt' }[v] || v)
+const norm = r => { if (r) for (const k of ['turn', 'created_by', 'author', 'set_turn', 'actor']) if (k in r) r[k] = nid(r[k]); return r }
+const grp = v => GROUP[v] || 'claude'
+async function detectScheme() { const r = await sb.rpc('studio_schema'); IDV = !r.error && r.data && r.data.identities >= 2 ? 2 : 1 }
 const app = document.getElementById('app')
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
 const linkify = s => esc(s).replace(/https:\/\/[^\s<]+[^\s<.,;:!?)'"]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`)
@@ -287,7 +297,7 @@ async function start() {
   sb = window.supabase.createClient(STUDIO.supabaseUrl, STUDIO.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } })
   const { data: { session } } = await sb.auth.getSession()
   if (!session) return signIn()
-  shell(); await load()
+  await detectScheme(); shell(); await load()
   setInterval(() => { if (!document.hidden && !busy) load() }, 20000)
   // while ChatGPT is mid-step, refresh the open view every 5 seconds so progress shows as it happens
   setInterval(() => { if (document.hidden || busy || !(nowLive || drawerLive)) return; if (openId) renderTask(openId, true); if (view === 'now') renderBoard() }, 5000)
@@ -326,7 +336,7 @@ function signIn() {
 const ICON = {
   now:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
   board:'<path d="M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z"/>',
-  kody:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>',
+  spitz:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>',
   chatgpt:'<path d="M4 17V7l8-4 8 4v10l-8 4z"/><path d="M12 11v10M4 7l8 4 8-4"/>',
   claude:'<path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18"/>',
   done:'<path d="m5 12 4 4 10-10"/>',
@@ -340,8 +350,8 @@ const ICON = {
   void:'<circle cx="12" cy="12" r="8"/><path d="M12 7a5 5 0 1 1-5 5"/><circle cx="12" cy="12" r="1.5"/>'
 }
 const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
-let view = pref('view2') || 'now', query = ''
-const VIEWS = [['now','Now'],['board','Board'],['kody','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
+let view = ({ kody:'spitz' }[pref('view2')] || pref('view2')) || 'now', query = ''
+const VIEWS = [['now','Now'],['board','Board'],['spitz','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
 
 function shell() {
   document.body.classList.add('signed')
@@ -417,7 +427,7 @@ async function load() {
   const { data, error } = await sb.from('studio_tasks').select('*').order('updated_at', { ascending: false }).limit(200)
   const st = document.getElementById('status')
   if (error) { document.getElementById('live').classList.add('off'); st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
-  document.getElementById('live').classList.remove('off'); tasks = data; if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
+  document.getElementById('live').classList.remove('off'); tasks = data.map(norm); if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
   renderBoard()
   if (openId) renderTask(openId, true)
 }
@@ -429,9 +439,9 @@ function renderBoard() {
   ps.innerHTML = ['all', ...projects].map(p => `<option value="${esc(p)}" ${p === project ? 'selected' : ''}>${p === 'all' ? 'All projects' : esc(p)}</option>`).join('')
   const vis = tasks.filter(t => (project === 'all' || t.project === project) && (!query || (t.title + ' ' + t.brief + ' ' + t.project).toLowerCase().includes(query)))
   const F = {
-    kody: t => t.status !== 'done' && t.turn === 'kody',
-    chatgpt: t => t.status !== 'done' && t.turn === 'chatgpt',
-    claude: t => t.status !== 'done' && (t.turn === 'claude' || !t.turn),
+    spitz: t => t.status !== 'done' && t.turn === 'spitz',
+    chatgpt: t => t.status !== 'done' && grp(t.turn) === 'chatgpt' && !!t.turn,
+    claude: t => t.status !== 'done' && (grp(t.turn) === 'claude' || !t.turn),
     done: t => t.status === 'done'
   }
   document.getElementById('views').innerHTML = VIEWS.map(([k, name]) => {
@@ -440,14 +450,14 @@ function renderBoard() {
   }).join('')
   document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
   const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
-        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
-  const keyOf = t => F.done(t) ? 'done' : F.kody(t) ? 'kody' : F.chatgpt(t) ? 'chatgpt' : 'claude'
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span>${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
+  const keyOf = t => F.done(t) ? 'done' : F.spitz(t) ? 'spitz' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
   const before = flipStart(b)
   if (view === 'board') {
     b.className = 'board'
-    b.innerHTML = ['kody','chatgpt','claude','done'].map(k => {
+    b.innerHTML = ['spitz','chatgpt','claude','done'].map(k => {
       const list = vis.filter(F[k]).slice(0, k === 'done' ? 20 : 100), name = VIEWS.find(v => v[0] === k)[1]
       return `<section class="col who-${k}" data-k="${k}"><h2>${name} <span class="count">${list.length}</span></h2><div class="cb">${list.map(t => card(t, k)).join('') || emptyCol(k)}</div></section>`
     }).join('')
@@ -462,7 +472,7 @@ function renderBoard() {
 }
 
 // ---- Board polish: empty columns, art thumbnails, cards slide when they change turn
-const EMPTY = { kody:'nothing on your plate', chatgpt:'ChatGPT has nothing queued', claude:'Claude has nothing queued', done:'nothing finished yet' }
+const EMPTY = { spitz:'nothing on your plate', chatgpt:'ChatGPT has nothing queued', claude:'Claude has nothing queued', done:'nothing finished yet' }
 const emptyCol = k => `<div class="empty2">${ico(k)}<span>${EMPTY[k] || 'nothing here'}</span></div>`
 const thumbCache = {} // task id -> { v: updated_at, asset }
 function thumbHtml(t) {
@@ -530,10 +540,10 @@ function runState(t, run, gw) {
     if (secs(hb) > STALE_S) return { cls: 'warn', hold: true, label: 'No recent update—may be stalled', detail: `last confirmed ${clockS(hb)} while ${run.step || 'starting'}${pics}`, next: 'The watchdog checks every minute. If the run stopped, it is marked stopped here with a Retry button, and you get one phone alert.' }
     return { cls: 'work', live: true, label: 'ChatGPT: ' + (run.step || 'starting'), detail: `run started ${clock(run.at)}, ${dur(secs(run.at))} so far · last update ${clockS(hb)}${pics}`, next: 'Nothing to do. You get a notification when it hands off.' }
   }
-  if (run && (run.status === 'stalled' || run.status === 'error') && t.turn === 'chatgpt' && t.status === 'open')
+  if (run && (run.status === 'stalled' || run.status === 'error') && t.turn === 'openai_worker' && t.status === 'open')
     return { cls: 'bad', label: run.status === 'stalled' ? 'ChatGPT stopped' : 'ChatGPT hit a problem', detail: (run.detail || '').slice(0, 300), next: 'Press Retry to carry on. Pictures already saved are kept and not redrawn.', retry: run.id }
   if (run && run.status === 'error' && run.version === t.version) return { cls: 'bad', label: 'ChatGPT hit a problem', detail: (run.detail || '').slice(0, 300), next: 'Fix the cause, then hand it back to ChatGPT.' }
-  if (t.turn === 'chatgpt' && gw && secs(gw.at) < 3600 && !(run && new Date(run.at) > new Date(gw.at))) {
+  if (t.turn === 'openai_worker' && gw && secs(gw.at) < 3600 && !(run && new Date(run.at) > new Date(gw.at))) {
     if (gw.waiting) return { cls: 'work', live: true, label: 'Waking ChatGPT', detail: `request sent ${clockS(gw.at)}, waiting for an answer` }
     if (gw.code >= 200 && gw.code < 300) return secs(gw.at) > 60
       ? { cls: 'warn', label: 'Wake accepted, but ChatGPT never started', detail: `accepted ${clockS(gw.at)}, nothing since`, next: 'Run ChatGPT now. If it happens again, the worker itself is failing.', run: true }
@@ -551,16 +561,18 @@ function nowState(t, msgs, x) {
   const pr = prOf([...msgs.flatMap(m => m.refs || []), ...(t.refs || [])])
   const st = { cls: '', label: '', detail: '', next: '', pr }
   if (t.status === 'blocked') return Object.assign(st, { cls: 'bad', label: 'Blocked', detail: first(last && last.body).slice(0, 160), next: 'Answer what it needs, then hand it back.' })
-  if (t.turn === 'kody') {
+  if (t.turn === 'spitz') {
     st.label = 'Waiting on you'; st.cls = 'you'
     st.detail = last ? `${WHO[last.author] || last.author} handed it to you ${ago(last.created_at)}` : 'New task'
     st.next = last && last.kind === 'question' ? 'Answer the question, then hand it back.'
       : pr ? `Review PR ${(pr.match(/\/pull\/(\d+)/) || [,''])[1]}. To put it live, say "push it" to Claude in chat.`
-      : 'Reply, hand it to ChatGPT or Claude, or mark it done.'
+      : 'Reply, hand it on, or mark it done.'
     return st
   }
   const run = x && x.run, wake = x && x.wake
-  if (t.turn === 'chatgpt') {
+  if (t.turn === 'chatgpt_chat') return Object.assign(st, { label: 'Waiting on your ChatGPT chat', detail: 'nothing starts by itself', next: 'Open it in ChatGPT when you are ready.' })
+  if (t.turn === 'claude_thread') return Object.assign(st, { label: 'A Claude thread has it', detail: 'no worker is woken', next: 'The thread reports back in your Claude project.' })
+  if (t.turn === 'openai_worker') {
     const rs = runState(t, run, x && x.gptwake)
     if (rs) return Object.assign(st, rs)
     Object.assign(st, { label: 'Queued for ChatGPT', detail: 'assigned, not started yet', next: 'It usually starts within a minute. If not, run it now.', run: true })
@@ -585,7 +597,7 @@ let nowSeq = 0, confirmDone = null
 const qrDraft = {} // unsent replies typed on the Now cards, kept across refreshes
 async function renderNow(vis) {
   const b = document.getElementById('board'), seq = ++nowSeq
-  const active = vis.filter(t => t.status !== 'done').sort((a, c) => ((c.turn === 'kody') - (a.turn === 'kody')) || (new Date(c.updated_at) - new Date(a.updated_at)))
+  const active = vis.filter(t => t.status !== 'done').sort((a, c) => ((c.turn === 'spitz') - (a.turn === 'spitz')) || (new Date(c.updated_at) - new Date(a.updated_at)))
   const done = vis.filter(t => t.status === 'done').sort((a, c) => new Date(c.updated_at) - new Date(a.updated_at)).slice(0, 5)
   const ids = active.map(t => t.id)
   let msgs = [], assets = [], extra = {}, health = null
@@ -594,7 +606,7 @@ async function renderNow(vis) {
       sb.from('studio_messages').select('task_id,seq,author,kind,body,refs,set_turn,set_status,created_at').in('task_id', ids).order('seq', { ascending: false }).limit(300),
       sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('task_id', ids).order('created_at', { ascending: false }).limit(40),
       sb.rpc('studio_now')])
-    msgs = m.data || []; assets = a.data || []
+    msgs = (m.data || []).map(norm); assets = a.data || []
     if (!n.error && n.data) { (n.data.tasks || []).forEach(x => extra[x.id] = x); health = n.data.health }
     else {
       // before the database update: ChatGPT's runs are still readable directly
@@ -617,23 +629,23 @@ async function renderNow(vis) {
   let anyLive = false
   const cardHtml = t => {
     const tm = msgs.filter(m => m.task_id === t.id), x = extra[t.id] && !(extra[t.id].noWake && t.turn === 'claude') ? extra[t.id] : null
-    const s = nowState(t, tm, x), img = latestImg(t, tm), k = t.turn || 'claude'
+    const s = nowState(t, tm, x), img = latestImg(t, tm), k = grp(t.turn)
     if (s.live) anyLive = true
-    const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'kody' ? 'Your turn' : `${WHO[t.turn] || 'Claude'}'s turn`
+    const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'spitz' ? 'Your turn' : `${WHO[t.turn] || 'Claude worker'}'s turn`
     const three = tm.slice(0, 3) // newest first
     const prNum = s.pr ? (s.pr.match(/\/pull\/(\d+)/) || [,''])[1] : ''
     return `<article class="now who-${k}" data-id="${t.id}">
       <div class="nh"><span class="pill">${esc(turn)}</span><span class="sub">${esc(t.project)} · last activity ${ago(t.updated_at)} (${clock(t.updated_at)})</span></div>
       <h2 class="nt">${esc(t.title)}</h2>
       <div class="state ${s.cls}"><b>${esc(s.label)}</b>${s.detail ? ' · ' + esc(s.detail) : ''}</div>
-      ${s.next ? `<div class="next ${t.turn === 'kody' || s.cls === 'bad' || s.cls === 'warn' ? 'hot' : ''}">Next: ${esc(s.next)}</div>` : ''}
+      ${s.next ? `<div class="next ${t.turn === 'spitz' || s.cls === 'bad' || s.cls === 'warn' ? 'hot' : ''}">Next: ${esc(s.next)}</div>` : ''}
       <div class="nb2 ${img ? '' : 'noimg'}">
         ${img ? `<a class="art" href="${url(img.id) || '#'}" target="_blank" rel="noopener">${url(img.id) ? `<img src="${url(img.id)}" alt="${esc(img.file_name)}">` : ''}<span class="cap">${esc(img.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${img.width}x${img.height}</span></a>` : ''}
-        <div class="feed">${three.map(m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
+        <div class="feed">${three.map(m => `<div class="msg who-${grp(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
           <button class="lnk" data-open="${t.id}">Full history${tm.length ? ` (${tm.length} message${tm.length === 1 ? '' : 's'})` : ''} →</button></div>
       </div>
       <div class="qr"><textarea data-qr="${t.id}" placeholder="Reply to ChatGPT and Claude..." aria-label="Reply on this task"></textarea>
-        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gpt" data-qa="chatgpt" data-t="${t.id}">Send + ChatGPT's turn</button><button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude's turn</button><span class="sub" data-qs="${t.id}"></span></div></div>
+        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gpt" data-qa="openai_worker" data-t="${t.id}">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-qa="chatgpt_chat" data-t="${t.id}" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude worker</button><span class="sub" data-qs="${t.id}"></span></div></div>
       <div class="acts">${s.pr ? `<a class="btn primary" href="${esc(s.pr)}" target="_blank" rel="noopener">Open PR ${esc(prNum)}</a>` : ''}
         ${s.retry ? `<button class="btn gpt" data-retry="${s.retry}" data-t="${t.id}">Retry</button>` : s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
         <button class="btn dn" data-done="${t.id}">${confirmDone === t.id ? 'Tap again to mark done' : 'Mark done'}</button><span class="sub" data-msg="${t.id}"></span></div>
@@ -703,7 +715,8 @@ async function renderTask(id, quiet) {
   const d = document.getElementById('drawer')
   const draft = d.querySelector('textarea')?.value || ''
   if (!quiet) d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3><div class="sub">Loading...</div></div><button class="btn" id="x">Close</button></div>`
-  const { data: msgs, error } = await sb.from('studio_messages').select('*').eq('task_id', id).order('seq', { ascending: true })
+  const { data: msgs0, error } = await sb.from('studio_messages').select('*').eq('task_id', id).order('seq', { ascending: true })
+  const msgs = (msgs0 || []).map(norm)
   if (openId !== id) return
   if (error) { d.querySelector('.sub').innerHTML = `<span class="err">${esc(error.message)}</span>`; return }
   // images: anything referenced by the task or its messages, plus anything dropped onto this task
@@ -719,15 +732,15 @@ async function renderTask(id, quiet) {
     sb.from('studio_worker_runs').select('id,status,detail,created_at,finished_at,step,heartbeat_at,task_version,done_assets,pics:plan->images').eq('task_id', id).order('id', { ascending: false }).limit(1),
     sb.rpc('studio_task_activity', { p_task_id: id })])
   if (openId !== id) return
-  const r0 = (runs || [])[0], events = (act && !act.error && act.data) || []
+  const r0 = (runs || [])[0], events = ((act && !act.error && act.data) || []).map(norm)
   const run = r0 && { id: r0.id, status: r0.status, detail: r0.detail, at: r0.created_at, finished: r0.finished_at, step: r0.step, heartbeat: r0.heartbeat_at, version: r0.task_version, pictures: (r0.pics || []).length, saved: (r0.done_assets || []).length }
-  const gw = events.find(e => e.actor === 'chatgpt' && e.kind === 'wake')
+  const gw = events.find(e => e.actor === 'openai_worker' && e.kind === 'wake')
   const rs = runState(t, run, gw && { at: gw.at, code: gw.wake_code, waiting: gw.wake_pending, error: gw.wake_error })
   drawerLive = !!(rs && rs.live)
   const RUN = { started: 'ChatGPT is working on it', ok: 'ChatGPT finished', error: 'ChatGPT hit a problem', skipped: 'ChatGPT skipped', stalled: 'ChatGPT stopped' }
   const runTxt = rs ? `<span class="state ${rs.cls}"><b>${esc(rs.label)}</b>${rs.detail ? ' · ' + esc(rs.detail) : ''}</span>${rs.next ? `<span class="nx"><br>${esc(rs.next)}</span>` : ''}`
     : run ? `${RUN[run.status] || run.status} · ${ago(run.finished || run.at)}` : ''
-  const gptTurn = t.turn === 'chatgpt' && t.status === 'open'
+  const gptTurn = t.turn === 'openai_worker' && t.status === 'open'
   const byId = Object.fromEntries(assets.map(a => [a.id, a]))
   const shown = new Set()
   const thumb = a => { shown.add(a.id); return `<a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>` }
@@ -736,21 +749,21 @@ async function renderTask(id, quiet) {
     const links = refs.filter(r => r.type !== 'asset').map(r => `<div><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.type === 'pr' ? 'Pull request ' + (r.url.match(/\/pull\/(\d+)/) || [,''])[1] : r.url)}</a></div>`).join('')
     return (imgs ? `<div class="thumbs">${imgs}</div>` : '') + links
   }
-  const msgHtml = m => `<div class="msg who-${m.author}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
+  const msgHtml = m => `<div class="msg who-${grp(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span class="tag">${esc(m.kind)}</span><span>${ago(m.created_at)}</span>
       ${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}'s turn</span>` : ''}${m.set_status ? `<span>· marked ${esc(m.set_status)}</span>` : ''}</div>
       <div class="pre">${linkify(m.body)}</div>${refsHtml(m.refs)}</div>`
   // one timeline: messages plus what the workers actually did (wakes, steps, saved pictures, failures), oldest first
   const EVC = { error: 'bad', stalled: 'bad', saved: 'good', handoff: 'good', done: 'good' }
   const evHtml = e => {
     const w = e.kind !== 'wake' ? '' : e.wake_pending ? ' · no answer yet' : e.wake_code >= 200 && e.wake_code < 300 ? ` · accepted (HTTP ${e.wake_code})` : ` · <span class="err">failed${e.wake_code ? ' (HTTP ' + e.wake_code + ')' : ''}${e.wake_error ? ': ' + esc(e.wake_error) : ''}</span>`
-    return `<div class="ev who-${e.actor} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
+    return `<div class="ev who-${grp(e.actor)} ${EVC[e.kind] || ''}"><span class="at">${clockS(e.at)}</span><span class="who2">${esc(WHO[e.actor] || 'spitz.dev')}</span><span class="d">${esc(e.detail || e.kind)}${w}</span></div>`
   }
   const items = [...msgs.map(m => ({ at: m.created_at, html: msgHtml(m) })), ...events.map(e => ({ at: e.at, html: evHtml(e) }))]
     .sort((a, b) => new Date(b.at) - new Date(a.at)) // newest first, at the top
   const timeline = items.map(i => i.html).join('')
   const briefRefs = refsHtml(t.refs)
   const loose = assets.filter(a => !shown.has(a.id))
-  const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn]}${t.turn === 'kody' ? 'r' : "'s"} turn` : 'Unassigned'
+  const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn] || t.turn}${t.turn === 'spitz' ? 'r' : "'s"} turn` : 'Unassigned'
   // background refresh: leave the drawer alone if nothing changed; if something did, keep where you were reading and typing
   const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
   if (quiet && d.dataset.sig === sig && d.dataset.task === id) return
@@ -765,8 +778,8 @@ async function renderTask(id, quiet) {
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
     <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
-      <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. To get an answer, use "Send + ChatGPT's turn" or "Send + Claude's turn".</div>
-      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="chatgpt">Send + ChatGPT's turn</button><button class="btn cl" data-a="claude">Send + Claude's turn</button>
+      <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. The worker buttons start ChatGPT or Claude at once; "my ChatGPT chat" waits for you to open it.</div>
+      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gpt" data-a="openai_worker">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude">Send + Claude worker</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
   const rt = d.querySelector('#retry'); if (rt) rt.onclick = () => retryRun(rt, d.querySelector('#rs'))
@@ -800,9 +813,9 @@ async function sendMsg(t, action, ta, cs, btns, onSent) {
     else body = `Over to ${WHO[action]}.`
   }
   const args = { p_task_id: t.id, p_request_key: key(), p_kind: action === 'done' ? 'decision' : 'note', p_body: body, p_refs: [] }
-  if (action === 'chatgpt' || action === 'claude') Object.assign(args, { p_set_turn: action, p_set_status: t.status === 'done' ? 'open' : null, p_expected_version: t.version })
+  if (['openai_worker', 'chatgpt_chat', 'claude', 'claude_thread'].includes(action)) Object.assign(args, { p_set_turn: oid(action), p_set_status: t.status === 'done' ? 'open' : null, p_expected_version: t.version })
   if (action === 'done') Object.assign(args, { p_set_status: 'done', p_expected_version: t.version })
-  if (action === 'reopen') Object.assign(args, { p_set_status: 'open', p_set_turn: 'kody', p_expected_version: t.version })
+  if (action === 'reopen') Object.assign(args, { p_set_status: 'open', p_set_turn: oid('spitz'), p_expected_version: t.version })
   busy = true; btns.forEach(b => b.disabled = true); cs.textContent = 'Sending...'
   const { data, error } = await sb.rpc('studio_post_message', args)
   busy = false; btns.forEach(b => b.disabled = false)
@@ -821,12 +834,12 @@ function newTask() {
       <label class="field"><span>Project (lowercase, like rook-and-ruin)</span><input id="np" required pattern="[a-z0-9][a-z0-9-]{0,39}" list="pl" value="${esc(project !== 'all' ? project : projects[0] || '')}"><datalist id="pl">${projects.map(p => `<option value="${esc(p)}">`).join('')}</datalist></label>
       <label class="field"><span>Title</span><input id="nt" required maxlength="200"></label>
       <label class="field"><span>Brief: the goal, the rules, and what to send back</span><textarea id="nb" required maxlength="8000"></textarea></label>
-      <label class="field"><span>Who goes first</span><select id="nw"><option value="chatgpt">ChatGPT</option><option value="claude">Claude</option></select></label>
+      <label class="field"><span>Who goes first</span><select id="nw"><option value="openai_worker">ChatGPT worker (starts at once)</option>${IDV >= 2 ? '<option value="chatgpt_chat">My ChatGPT chat (waits for me)</option>' : ''}<option value="claude">Claude worker (starts at once)</option></select></label>
       <div class="row"><button class="btn primary" type="submit">Create task</button><span id="ns"></span></div></form>`
   d.querySelector('#x').onclick = closeTask
   d.querySelector('#nf').onsubmit = async e => {
     e.preventDefault(); const ns = d.querySelector('#ns'); ns.textContent = 'Creating...'
-    const { data, error } = await sb.rpc('studio_create_task', { p_request_key: key(), p_project: d.querySelector('#np').value.trim(), p_title: d.querySelector('#nt').value.trim(), p_brief: d.querySelector('#nb').value.trim(), p_turn: d.querySelector('#nw').value, p_refs: [] })
+    const { data, error } = await sb.rpc('studio_create_task', { p_request_key: key(), p_project: d.querySelector('#np').value.trim(), p_title: d.querySelector('#nt').value.trim(), p_brief: d.querySelector('#nb').value.trim(), p_turn: oid(d.querySelector('#nw').value), p_refs: [] })
     if (error) { ns.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Creating tasks from the dashboard is not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
     await load(); renderTask(data.task.id)
   }
