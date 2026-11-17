@@ -102,6 +102,7 @@ body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
 .nb .n{ margin-left:auto; font-size:12px; color:var(--c,var(--muted)); }
 .nb.on .n{ color:#000; }
 .newb{ border-color:var(--orange); color:var(--orange); font-weight:700; }
+a.nb.void{ text-decoration:none; color:#b45aff; } a.nb.void:hover{ border-color:#b45aff; color:#cf95ff; }
 nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--line); padding-top:10px; }
 .foot{ display:flex; align-items:center; gap:4px; border-top:1px solid var(--line); padding-top:10px; }
 .live{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-right:auto; padding-left:4px; }
@@ -315,7 +316,8 @@ const ICON = {
   refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/>',
   chev:'<path d="m15 6-6 6 6 6"/>',
   key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3M14 9l2 2"/>',
-  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>'
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>',
+  void:'<circle cx="12" cy="12" r="8"/><path d="M12 7a5 5 0 1 1-5 5"/><circle cx="12" cy="12" r="1.5"/>'
 }
 const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
 let view = pref('view2') || 'now', query = ''
@@ -330,6 +332,7 @@ function shell() {
       <select id="proj" class="proj" aria-label="Project"></select>
       <button class="nb newb" id="new">${ico('plus')}<span class="lbl">New task</span></button>
       <nav id="views"></nav>
+      <a class="nb void" href="void/" title="The Void: your private idea dump">${ico('void')}<span class="lbl">The Void</span></a>
       <div class="grow"></div>
       <div class="foot"><span class="live" id="live" title="Connected"><i></i><span class="lbl">Live</span></span>
         <button class="ib" id="bell" title="Phone notifications">${ico('bell')}</button><button class="ib" id="key" title="Set a password for the phone app">${ico('key')}</button><button class="ib" id="rf" title="Refresh">${ico('refresh')}</button><button class="ib" id="out" title="Sign out">${ico('out')}</button></div>
