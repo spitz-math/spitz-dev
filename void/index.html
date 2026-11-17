@@ -7,7 +7,7 @@
 <title>the void · spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_void_64.png">
 <link rel="apple-touch-icon" href="../icon_180.png">
-<meta name="theme-color" content="#07060a">
+<meta name="theme-color" content="#0B0C14">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
@@ -15,18 +15,19 @@
 /* The Void: Kody's private idea dump on spitz.dev. Same sign-in, same mono font as the dashboard,
    amethyst instead of orange. No due dates, no streaks, no progress. Ideas are stored and left alone. */
 :root{
-  --bg:#07060a; --panel:#110e17; --panel2:#17131f; --line:#2b2436; --ink:#ece8f2; --muted:#9b93a8;
-  --am:#b45aff; --am2:#cf95ff; --jade:#20e6ae; --ember:#ff892e; --bad:#ff5a5f;
+  /* spitz.dev color system (design/tokens.css): shared neutrals, The Void violet, status colors */
+  --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
+  --am:#AD5CFF; --am2:#CEADFF; --ok:#8ED8B1; --warn:#E9BD70; --bad:#FF8293; --focus:#FFE2AA; --on-accent:#0B0C14;
 }
 *{ box-sizing:border-box; }
 html,body{ margin:0; overflow-x:hidden; max-width:100%; color:var(--ink); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; }
 body{ min-height:100vh; background:
-  radial-gradient(60rem 36rem at 50% -12rem, rgba(180,90,255,.20), transparent 70%),
-  radial-gradient(30rem 22rem at 100% 100%, rgba(180,90,255,.07), transparent 70%), var(--bg); background-attachment:fixed; }
+  radial-gradient(60rem 36rem at 50% -12rem, rgba(173,92,255,.16), transparent 70%),
+  radial-gradient(30rem 22rem at 100% 100%, rgba(173,92,255,.06), transparent 70%), var(--bg); background-attachment:fixed; }
 button,input,textarea,select{ font:inherit; color:inherit; }
 a{ color:var(--am2); }
-::selection{ background:var(--am); color:#000; }
-:focus-visible{ outline:2px solid var(--am); outline-offset:2px; }
+::selection{ background:var(--am); color:var(--on-accent); }
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
 .wrap{ max-width:760px; margin:0 auto; padding:0 16px 64px; }
 header{ display:flex; align-items:center; gap:10px; padding:14px 0; }
 header .back{ color:var(--muted); text-decoration:none; font-size:12px; border:1px solid var(--line); border-radius:6px; padding:5px 10px; }
@@ -37,16 +38,16 @@ header .mark{ width:40px; height:auto; margin-left:auto; }
 /* hero: the portal (custom line art, void/portal.png) inside a slowly turning dashed ring. */
 .hero{ text-align:center; padding:18px 0 22px; }
 .portal{ width:132px; height:132px; margin:0 auto 14px; position:relative; }
-.portal .ring{ position:absolute; inset:4px; border-radius:50%; border:2px dashed rgba(207,149,255,.55); animation:spin 28s linear infinite; }
-.portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(180,90,255,.35)); }
+.portal .ring{ position:absolute; inset:4px; border-radius:50%; border:2px dashed rgba(206,173,255,.55); animation:spin 28s linear infinite; }
+.portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(173,92,255,.35)); }
 .portal.gulp img{ animation:gulp .7s ease-out; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
-@keyframes gulp{ 0%{ transform:scale(1) rotate(0); } 35%{ transform:scale(1.14) rotate(-25deg); filter:drop-shadow(0 0 22px rgba(180,90,255,.7)); } 100%{ transform:scale(1) rotate(0); } }
+@keyframes gulp{ 0%{ transform:scale(1) rotate(0); } 35%{ transform:scale(1.14) rotate(-25deg); filter:drop-shadow(0 0 22px rgba(173,92,255,.7)); } 100%{ transform:scale(1) rotate(0); } }
 h1{ margin:0; font-size:28px; letter-spacing:.02em; }
 h1 b{ color:var(--am); }
 .tag{ margin:6px 0 0; color:var(--muted); }
 /* capture */
-.cap{ background:var(--panel); border:1px solid var(--am); border-radius:10px; padding:14px; box-shadow:0 0 0 1px rgba(180,90,255,.08), 0 10px 40px -12px rgba(180,90,255,.35); }
+.cap{ background:var(--panel); border:1px solid var(--am); border-radius:10px; padding:14px; box-shadow:0 0 0 1px rgba(173,92,255,.08), 0 10px 40px -12px rgba(173,92,255,.30); }
 .cap textarea{ width:100%; min-height:110px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px; caret-color:var(--am); font-size:16px; line-height:1.5; }
 .cap textarea:focus{ border-color:var(--am); outline:none; }
 .cats{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 0; border:0; padding:0; }
@@ -54,20 +55,23 @@ h1 b{ color:var(--am); }
 .cat{ position:relative; }
 .cat input{ position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
 .cat span{ display:inline-block; border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:13px; color:var(--muted); }
-.cat input:checked + span{ border-color:var(--am); color:#000; background:var(--am); font-weight:700; }
-.cat input:focus-visible + span{ outline:2px solid var(--am2); outline-offset:2px; }
+.cat input:checked + span{ border-color:var(--am); color:var(--ink); background:var(--panel2); font-weight:700; }
+.cat input:checked + span::before{ content:'✓ '; color:var(--am2); }
+.cat input:focus-visible + span{ outline:2px solid var(--focus); outline-offset:2px; }
 .cat:hover span{ color:var(--ink); }
 .go{ display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
 .btn{ background:transparent; border:1px solid var(--line); border-radius:8px; padding:8px 14px; cursor:pointer; }
 .btn:hover{ border-color:var(--am); color:var(--am2); }
-.btn.primary{ background:var(--am); border-color:var(--am); color:#000; font-weight:700; padding:10px 18px; }
-.btn.primary:hover{ background:var(--am2); color:#000; }
+.btn.primary{ background:var(--am); border-color:var(--am); color:var(--on-accent); font-weight:700; padding:10px 18px; }
+.btn.primary:hover{ background:var(--am2); color:var(--on-accent); }
 .btn:disabled{ opacity:.5; cursor:default; }
 .btn.sm{ padding:4px 10px; font-size:12px; border-radius:6px; }
 .btn.danger:hover{ border-color:var(--bad); color:var(--bad); }
-.quote{ min-height:1.5em; margin:12px 2px 0; color:var(--jade); font-size:13px; }
+.quote{ min-height:1.5em; margin:12px 2px 0; color:var(--ok); font-size:13px; }
+.quote:not(:empty)::before{ content:'✓ '; }
 .quote:empty{ margin:0; min-height:0; }
-.banner{ border:1px dashed var(--ember); color:var(--ember); border-radius:8px; padding:10px 12px; font-size:12px; margin:0 0 14px; }
+.banner{ border:1px dashed var(--warn); color:var(--warn); border-radius:8px; padding:10px 12px; font-size:12px; margin:0 0 14px; }
+.banner::before{ content:'! '; font-weight:700; }
 /* list */
 .filters{ display:flex; gap:6px; flex-wrap:wrap; margin:28px 0 12px; }
 .f{ border:1px solid transparent; background:transparent; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--muted); }
@@ -85,6 +89,7 @@ h1 b{ color:var(--am); }
 .empty{ color:var(--muted); font-size:13px; padding:8px 2px; }
 .empty::before{ content:'// '; }
 .err{ color:var(--bad); font-size:12px; }
+.err:not(:empty)::before{ content:'× '; }
 .toast{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--panel); border:1px solid var(--am); border-radius:8px; padding:10px 14px; display:flex; gap:12px; align-items:center; z-index:9; max-width:calc(100% - 32px); box-shadow:0 8px 30px rgba(0,0,0,.6); }
 .toast[hidden]{ display:none; }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }

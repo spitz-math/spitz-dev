@@ -59,7 +59,7 @@ Primary action orange; links `#D4DCF4`; hover `#FFAD74`; focus ring `#FFE2AA` (2
 - **The Void** — `--sd-atmo-void` purple-black background; violet only for its title and hover; the five categories are neutral tags, not five colors.
 - **Arcade, Checkpoint, Off the Clock** — keep their own looks. Don't repaint them to match these colors.
 
-## Migrating index.html (not done in this PR)
+## Migrating index.html (done: live board, The Void and the manifest use these colors)
 
 Current live tokens, and what each would map to:
 
