@@ -23,8 +23,8 @@
   --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
   --orange:#FF892E; --orange2:#FFAD74;
   /* identity: borders/marks use the -line shade; small text uses the -text shade */
-  --kody:#FF892E; --chatgpt:#19CFF5; --claude:#D0445F; --done:#A5A8B5;
-  --kody-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#E77791; --done-text:#A5A8B5;
+  --kody:#FF892E; --chatgpt:#19CFF5; --claude:#EF3B36; --done:#A5A8B5;
+  --kody-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#FF4F4F; --done-text:#A5A8B5;
   --void:#AD5CFF; --void-text:#CEADFF;
   /* status: always paired with a word, and an icon where it is shown alone */
   --good:#8ED8B1; --warn:#E9BD70; --bad:#FF8293;
@@ -64,7 +64,7 @@ main{ padding:18px 20px 40px; }
 @media (max-width:1000px){ .board{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:620px){ .board{ grid-template-columns:minmax(0,1fr); } header{ padding:10px 16px; } main{ padding:14px 16px 40px; } }
 .col{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:12px; min-height:120px; }
-.col.who-kody{ border-color:var(--orange); }
+.col.who-kody, .col.who-chatgpt, .col.who-claude{ border:2px solid var(--c); }
 .col h2{ margin:0 0 10px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; color:var(--c); }
 .col h2::before{ content:'>'; color:var(--muted); }
 .dot{ display:none; }
@@ -151,7 +151,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .nowgrid{ display:grid; gap:16px; }
 @media (min-width:1300px){ .nowgrid.n2{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 .now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
-.now.who-kody{ border-color:var(--orange); }
+.now.who-kody, .now.who-chatgpt, .now.who-claude{ border:2px solid var(--c); border-top-width:3px; }
 .nh{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .pill{ border:1px solid var(--c); color:var(--ct,var(--c)); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
 .nt{ margin:8px 0 6px; font-size:17px; line-height:1.35; }
