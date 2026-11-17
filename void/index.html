@@ -33,17 +33,14 @@ header .back{ color:var(--muted); text-decoration:none; font-size:12px; border:1
 header .back:hover{ color:var(--am2); border-color:var(--am); }
 .grow{ flex:1; }
 .sub{ color:var(--muted); font-size:12px; }
-/* hero: the portal. The orb is a stand-in until the custom portal art arrives (void/portal.png). */
+/* hero: the portal (custom line art, void/portal.png) inside a slowly turning dashed ring. */
 .hero{ text-align:center; padding:18px 0 22px; }
 .portal{ width:132px; height:132px; margin:0 auto 14px; position:relative; }
-.portal .orb{ position:absolute; inset:14px; border-radius:50%;
-  background:radial-gradient(circle at 50% 50%, #000 0 38%, #1a0b2b 52%, rgba(180,90,255,.55) 66%, transparent 72%);
-  box-shadow:0 0 36px 6px rgba(180,90,255,.35), inset 0 0 22px rgba(180,90,255,.45); }
 .portal .ring{ position:absolute; inset:4px; border-radius:50%; border:2px dashed rgba(207,149,255,.55); animation:spin 28s linear infinite; }
-.portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
-.portal.gulp .orb{ animation:gulp .7s ease-out; }
+.portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px rgba(180,90,255,.35)); }
+.portal.gulp img{ animation:gulp .7s ease-out; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
-@keyframes gulp{ 0%{ transform:scale(1); } 35%{ transform:scale(1.14); box-shadow:0 0 60px 14px rgba(180,90,255,.55), inset 0 0 22px rgba(180,90,255,.45); } 100%{ transform:scale(1); } }
+@keyframes gulp{ 0%{ transform:scale(1) rotate(0); } 35%{ transform:scale(1.14) rotate(-25deg); filter:drop-shadow(0 0 22px rgba(180,90,255,.7)); } 100%{ transform:scale(1) rotate(0); } }
 h1{ margin:0; font-size:28px; letter-spacing:.02em; }
 h1 b{ color:var(--am); }
 .tag{ margin:6px 0 0; color:var(--muted); }
@@ -91,7 +88,7 @@ h1 b{ color:var(--am); }
 .toast[hidden]{ display:none; }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
 .later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
-@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp .orb{ animation:none; } }
+@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img{ animation:none; } }
 @media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .go .btn.primary{ flex:1; } }
 </style>
 </head>
@@ -175,7 +172,7 @@ async function start() {
 
 function shell() {
   app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><span class="grow"></span><span class="sub" id="mode"></span></header>
-    <section class="hero"><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><div class="orb"></div></div>
+    <section class="hero"><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><img src="portal.png" alt="" width="512" height="512"></div>
       <h1>the <b>void</b></h1><p class="tag">Get it out of your head. Into the void.</p></section>
     ${preview ? `<div class="banner"><b>Local preview.</b> Ideas are saved only in this browser on this device, until the void_ideas database update is applied. Nothing is synced yet.</div>` : ''}
     <form class="cap" id="cap" autocomplete="off">
