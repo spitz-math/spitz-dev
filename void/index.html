@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
+<script src="voice.js"></script>
 <style>
 /* The Void: Kody's private idea dump on spitz.dev. Same sign-in, same mono font as the dashboard,
    amethyst instead of orange. No due dates, no streaks, no progress. Ideas are stored and left alone. */
@@ -86,6 +87,11 @@ h1 b{ color:var(--am); }
 .quote{ min-height:1.5em; margin:12px 2px 0; color:var(--ok); font-size:13px; }
 .quote:not(:empty)::before{ content:'✓ '; }
 .quote:empty{ margin:0; min-height:0; }
+/* legendary line (1 in 100): ember text with a soft amethyst glow, no badge. One slow flare, none under reduced motion. */
+.quote.legendary{ color:#FFB27A; font-weight:700; text-shadow:0 0 10px rgba(173,92,255,.55), 0 0 2px rgba(255,140,80,.5); }
+.quote.legendary::before{ content:'✦ '; color:var(--am2); }
+.quote.legendary.flare{ animation:flare 1.6s ease-out; }
+@keyframes flare{ 0%{ text-shadow:0 0 22px rgba(173,92,255,.95), 0 0 8px rgba(255,140,80,.8); } 100%{ text-shadow:0 0 10px rgba(173,92,255,.55), 0 0 2px rgba(255,140,80,.5); } }
 .banner{ border:1px dashed var(--warn); color:var(--warn); border-radius:8px; padding:10px 12px; font-size:12px; margin:0 0 14px; }
 .banner::before{ content:'! '; font-weight:700; }
 /* list */
@@ -116,7 +122,7 @@ h1 b{ color:var(--am); }
 .toast[hidden]{ display:none; }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
 .later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
-@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow{ animation:none; } }
+@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow, .quote.legendary.flare{ animation:none; } }
 @media (max-width:520px){ .filters{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:-16px; margin-right:-16px; padding:0 16px 4px; scroll-padding:0 16px; } .filters::-webkit-scrollbar{ display:none; } h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:560px; top:70px; } .far{ width:240px; right:-60px; bottom:-20px; opacity:.55; } .go .btn.primary{ flex:1; } }
 </style>
 </head>
@@ -143,18 +149,8 @@ const CICON = {
   random:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'
 }
 const cico = k => CICON[k] ? `<svg class="ci" viewBox="0 0 24 24" aria-hidden="true">${CICON[k]}</svg>` : ''
-const QUOTES = [
-  'Your idea has been consumed. Your responsibilities have not increased.',
-  "Claude has not been notified. You're welcome.",
-  'This could have been a nap.',
-  'Thought successfully removed from brain. Please go touch grass.',
-  'Filed under: not tonight.',
-  'The void says thanks. The void asks nothing of you.',
-  'No deadline was created. Breathe.',
-  'Safely stored. Zero tasks were harmed.',
-  'Out of your head. Into the void.',
-  'Deposit received. Sanity partially reclaimed.'
-]
+// What the Void says after a save lives in voice.js. This one line is the fallback if that file fails to load.
+const FALLBACK_QUOTE = 'Your idea has been consumed. Your responsibilities have not increased.'
 const PREVIEW_KEY = 'void_preview_ideas'
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
 const when = t => { const d = new Date(t), s = (Date.now() - d) / 1000
@@ -164,7 +160,7 @@ const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now() + 
 const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v) } catch (e) { return null } }
 
 const app = document.getElementById('app')
-let sb, preview = false, ideas = [], filter = store('void_filter') || 'all', editing = null, lastQuote = -1, toastTimer
+let sb, preview = false, ideas = [], filter = store('void_filter') || 'all', editing = null, lastQuote = null, toastTimer
 
 // ---- storage: Supabase table void_ideas, or a clearly labelled local preview until it exists
 const db = {
@@ -274,19 +270,25 @@ function shell() {
     const category = form.cat.value; store('void_cat', category)
     const btn = document.getElementById('drop'); btn.disabled = true; setErr('')
     try {
+      const prevAt = ideas.reduce((m, x) => (!m || x.created_at > m ? x.created_at : m), null) // newest idea before this one, for the voice
       const now = new Date().toISOString()
       const row = await db.insert(preview ? { id: uuid(), created_at: now, updated_at: now, category, body: text } : { category, body: text })
       if (!preview) ideas.unshift(row)
       suckIn(body, text); body.value = ''
-      sayQuote(); gulp(); renderList()
+      sayQuote(prevAt); gulp(); renderList()
     } catch (err) { setErr("Couldn't save it (your text is still in the box): " + err.message) }
     btn.disabled = false; body.focus()
   }
 }
 
-function sayQuote() {
-  let i; do { i = Math.floor(Math.random() * QUOTES.length) } while (i === lastQuote && QUOTES.length > 1)
-  lastQuote = i; document.getElementById('quote').textContent = QUOTES[i]
+// Called only after a successful save. Rarity and context live in voice.js.
+function sayQuote(prevAt) {
+  const q = document.getElementById('quote'); if (!q) return
+  const p = window.VoidVoice ? VoidVoice.pick({ prevAt, now: new Date(), last: lastQuote }) : { text: FALLBACK_QUOTE, tier: 'common' }
+  lastQuote = p.text
+  q.classList.remove('legendary', 'flare'); q.dataset.tier = p.tier
+  if (p.tier === 'legendary') { void q.offsetWidth; q.classList.add('legendary', 'flare') }
+  q.textContent = p.text
 }
 function gulp() { const p = document.getElementById('portal'), h = document.getElementById('hero'); p.classList.remove('gulp'); void p.offsetWidth; p.classList.add('gulp')
   h.classList.add('gulping'); clearTimeout(gulp.t); gulp.t = setTimeout(() => h.classList.remove('gulping'), 1600) }
