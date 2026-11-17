@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>the void · spitz.dev</title>
+<link rel="icon" type="image/png" href="../burger_line_64.png">
+<link rel="apple-touch-icon" href="../icon_180.png">
+<meta name="theme-color" content="#07060a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
+<style>
+/* The Void: Kody's private idea dump on spitz.dev. Same sign-in, same mono font as the dashboard,
+   amethyst instead of orange. No due dates, no streaks, no progress. Ideas are stored and left alone. */
+:root{
+  --bg:#07060a; --panel:#110e17; --panel2:#17131f; --line:#2b2436; --ink:#ece8f2; --muted:#9b93a8;
+  --am:#b45aff; --am2:#cf95ff; --jade:#20e6ae; --ember:#ff892e; --bad:#ff5a5f;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; overflow-x:hidden; max-width:100%; color:var(--ink); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; }
+body{ min-height:100vh; background:
+  radial-gradient(60rem 36rem at 50% -12rem, rgba(180,90,255,.20), transparent 70%),
+  radial-gradient(30rem 22rem at 100% 100%, rgba(180,90,255,.07), transparent 70%), var(--bg); background-attachment:fixed; }
+button,input,textarea,select{ font:inherit; color:inherit; }
+a{ color:var(--am2); }
+::selection{ background:var(--am); color:#000; }
+:focus-visible{ outline:2px solid var(--am); outline-offset:2px; }
+.wrap{ max-width:760px; margin:0 auto; padding:0 16px 64px; }
+header{ display:flex; align-items:center; gap:10px; padding:14px 0; }
+header .back{ color:var(--muted); text-decoration:none; font-size:12px; border:1px solid var(--line); border-radius:6px; padding:5px 10px; }
+header .back:hover{ color:var(--am2); border-color:var(--am); }
+.grow{ flex:1; }
+.sub{ color:var(--muted); font-size:12px; }
+/* hero: the portal. The orb is a stand-in until the custom portal art arrives (void/portal.png). */
+.hero{ text-align:center; padding:18px 0 22px; }
+.portal{ width:132px; height:132px; margin:0 auto 14px; position:relative; }
+.portal .orb{ position:absolute; inset:14px; border-radius:50%;
+  background:radial-gradient(circle at 50% 50%, #000 0 38%, #1a0b2b 52%, rgba(180,90,255,.55) 66%, transparent 72%);
+  box-shadow:0 0 36px 6px rgba(180,90,255,.35), inset 0 0 22px rgba(180,90,255,.45); }
+.portal .ring{ position:absolute; inset:4px; border-radius:50%; border:2px dashed rgba(207,149,255,.55); animation:spin 28s linear infinite; }
+.portal img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+.portal.gulp .orb{ animation:gulp .7s ease-out; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@keyframes gulp{ 0%{ transform:scale(1); } 35%{ transform:scale(1.14); box-shadow:0 0 60px 14px rgba(180,90,255,.55), inset 0 0 22px rgba(180,90,255,.45); } 100%{ transform:scale(1); } }
+h1{ margin:0; font-size:28px; letter-spacing:.02em; }
+h1 b{ color:var(--am); }
+.tag{ margin:6px 0 0; color:var(--muted); }
+/* capture */
+.cap{ background:var(--panel); border:1px solid var(--am); border-radius:10px; padding:14px; box-shadow:0 0 0 1px rgba(180,90,255,.08), 0 10px 40px -12px rgba(180,90,255,.35); }
+.cap textarea{ width:100%; min-height:110px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:12px; caret-color:var(--am); font-size:16px; line-height:1.5; }
+.cap textarea:focus{ border-color:var(--am); outline:none; }
+.cats{ display:flex; gap:6px; flex-wrap:wrap; margin:10px 0 0; border:0; padding:0; }
+.cats legend{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.cat{ position:relative; }
+.cat input{ position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; }
+.cat span{ display:inline-block; border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:13px; color:var(--muted); }
+.cat input:checked + span{ border-color:var(--am); color:#000; background:var(--am); font-weight:700; }
+.cat input:focus-visible + span{ outline:2px solid var(--am2); outline-offset:2px; }
+.cat:hover span{ color:var(--ink); }
+.go{ display:flex; align-items:center; gap:10px; margin-top:12px; flex-wrap:wrap; }
+.btn{ background:transparent; border:1px solid var(--line); border-radius:8px; padding:8px 14px; cursor:pointer; }
+.btn:hover{ border-color:var(--am); color:var(--am2); }
+.btn.primary{ background:var(--am); border-color:var(--am); color:#000; font-weight:700; padding:10px 18px; }
+.btn.primary:hover{ background:var(--am2); color:#000; }
+.btn:disabled{ opacity:.5; cursor:default; }
+.btn.sm{ padding:4px 10px; font-size:12px; border-radius:6px; }
+.btn.danger:hover{ border-color:var(--bad); color:var(--bad); }
+.quote{ min-height:1.5em; margin:12px 2px 0; color:var(--jade); font-size:13px; }
+.quote:empty{ margin:0; min-height:0; }
+.banner{ border:1px dashed var(--ember); color:var(--ember); border-radius:8px; padding:10px 12px; font-size:12px; margin:0 0 14px; }
+/* list */
+.filters{ display:flex; gap:6px; flex-wrap:wrap; margin:28px 0 12px; }
+.f{ border:1px solid transparent; background:transparent; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--muted); }
+.f:hover{ color:var(--ink); }
+.f[aria-pressed="true"]{ border-color:var(--am); color:var(--am2); }
+.f .n{ opacity:.7; margin-left:4px; }
+.idea{ background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:0 0 10px; overflow-wrap:anywhere; }
+.idea .h{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:6px; }
+.idea .c{ color:var(--am2); }
+.idea .b{ white-space:pre-wrap; }
+.idea .acts{ display:flex; gap:6px; margin-left:auto; }
+.idea textarea{ width:100%; min-height:90px; resize:vertical; background:var(--bg); border:1px solid var(--am); border-radius:6px; padding:10px; font-size:16px; }
+.idea select{ background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
+.idea .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
+.empty{ color:var(--muted); font-size:13px; padding:8px 2px; }
+.empty::before{ content:'// '; }
+.err{ color:var(--bad); font-size:12px; }
+.toast{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--panel); border:1px solid var(--am); border-radius:8px; padding:10px 14px; display:flex; gap:12px; align-items:center; z-index:9; max-width:calc(100% - 32px); box-shadow:0 8px 30px rgba(0,0,0,.6); }
+.toast[hidden]{ display:none; }
+.center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
+.later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
+@media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp .orb{ animation:none; } }
+@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .go .btn.primary{ flex:1; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><p class="sub" style="padding-top:30vh;text-align:center">// opening the void...</p></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script>
+// Same Supabase project and sign-in as the dashboard (same origin, so the session carries over).
+const STUDIO = { supabaseUrl: 'https://klbbcwlddgtsolvsxvwe.supabase.co', supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9' }
+const CATS = [['arcade','Arcade'],['checkpoint','Checkpoint'],['off-the-clock','Off the Clock'],['spitz-dev','spitz.dev'],['random','Random Bullshit']]
+const CAT = Object.fromEntries(CATS)
+const QUOTES = [
+  'Your idea has been consumed. Your responsibilities have not increased.',
+  "Claude has not been notified. You're welcome.",
+  'This could have been a nap.',
+  'Thought successfully removed from brain. Please go touch grass.',
+  'Filed under: not tonight.',
+  'The void says thanks. The void asks nothing of you.',
+  'No deadline was created. Breathe.',
+  'Safely stored. Zero tasks were harmed.',
+  'Out of your head. Into the void.',
+  'Deposit received. Sanity partially reclaimed.'
+]
+const PREVIEW_KEY = 'void_preview_ideas'
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+const when = t => { const d = new Date(t), s = (Date.now() - d) / 1000
+  if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' h ago'
+  return d.toLocaleDateString([], { month:'short', day:'numeric', year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }) }
+const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now() + Math.random().toString(36).slice(2)
+const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v) } catch (e) { return null } }
+
+const app = document.getElementById('app')
+let sb, preview = false, ideas = [], filter = store('void_filter') || 'all', editing = null, lastQuote = -1, toastTimer
+
+// ---- storage: Supabase table void_ideas, or a clearly labelled local preview until it exists
+const db = {
+  async list() {
+    if (preview) { try { return JSON.parse(store(PREVIEW_KEY) || '[]') } catch (e) { return [] } }
+    const { data, error } = await sb.from('void_ideas').select('id,created_at,updated_at,category,body').order('created_at', { ascending: false }).limit(1000)
+    if (error) throw error
+    return data
+  },
+  save() { if (preview) store(PREVIEW_KEY, JSON.stringify(ideas)) },
+  async insert(row) {
+    if (preview) { ideas.unshift(row); ideas.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); db.save(); return row }
+    const { data, error } = await sb.from('void_ideas').insert(row).select('id,created_at,updated_at,category,body').single()
+    if (error) throw error
+    return data
+  },
+  async update(id, patch) {
+    if (preview) { const i = ideas.find(x => x.id === id); Object.assign(i, patch, { updated_at: new Date().toISOString() }); db.save(); return i }
+    const { data, error } = await sb.from('void_ideas').update(patch).eq('id', id).select('id,created_at,updated_at,category,body').single()
+    if (error) throw error
+    return data
+  },
+  async remove(id) {
+    if (preview) { ideas = ideas.filter(x => x.id !== id); db.save(); return }
+    const { error } = await sb.from('void_ideas').delete().eq('id', id)
+    if (error) throw error
+  }
+}
+const missingTable = e => e && (e.code === 'PGRST205' || e.code === '42P01' || /void_ideas/.test(e.message || ''))
+
+if (!window.supabase) app.innerHTML = '<div class="center"><h1>the <b>void</b></h1><p class="err">Could not load sign-in. Check your connection and reload.</p></div>'
+else start()
+
+async function start() {
+  sb = window.supabase.createClient(STUDIO.supabaseUrl, STUDIO.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, flowType: 'pkce' } })
+  const { data: { session } } = await sb.auth.getSession()
+  if (!session) {
+    app.innerHTML = `<div class="center"><h1>the <b>void</b></h1><p class="tag">Private. Sign in on the spitz.dev dashboard first.</p><p><a class="btn primary" href="../" style="text-decoration:none;display:inline-block">go to spitz.dev</a></p></div>`
+    return
+  }
+  try { ideas = await db.list() }
+  catch (e) {
+    if (!missingTable(e)) { shell(); setErr("Couldn't open the void: " + e.message); return }
+    preview = true; ideas = await db.list()
+  }
+  shell(); renderList()
+}
+
+function shell() {
+  app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><span class="grow"></span><span class="sub" id="mode"></span></header>
+    <section class="hero"><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><div class="orb"></div></div>
+      <h1>the <b>void</b></h1><p class="tag">Get it out of your head. Into the void.</p></section>
+    ${preview ? `<div class="banner"><b>Local preview.</b> Ideas are saved only in this browser on this device, until the void_ideas database update is applied. Nothing is synced yet.</div>` : ''}
+    <form class="cap" id="cap" autocomplete="off">
+      <label for="body" class="sub">// what's rattling around in there?</label>
+      <textarea id="body" required maxlength="8000" placeholder="An idea, a someday, a what-if..." spellcheck="true"></textarea>
+      <fieldset class="cats"><legend>Category</legend>${CATS.map(([k, n], i) => `<label class="cat"><input type="radio" name="cat" value="${k}" ${k === (store('void_cat') || 'random') ? 'checked' : ''}><span>${esc(n)}</span></label>`).join('')}</fieldset>
+      <div class="go"><button class="btn primary" type="submit" id="drop">drop it in the void</button><span class="sub">ctrl/⌘ + enter</span></div>
+      <p class="quote" id="quote" role="status" aria-live="polite"></p>
+    </form>
+    <div class="filters" id="filters" role="group" aria-label="Show category"></div>
+    <div id="list"></div>
+    <p class="err" id="err"></p>
+    <p class="later">Deposit your thoughts. Reclaim your sanity.<br>// sending an idea to ChatGPT or Claude: coming later. For now, use Copy.</p>`
+  document.getElementById('mode').textContent = preview ? 'local preview' : 'private · synced'
+  const body = document.getElementById('body'), form = document.getElementById('cap')
+  body.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit() } })
+  form.onsubmit = async e => {
+    e.preventDefault()
+    const text = body.value.trim(); if (!text) return
+    const category = form.cat.value; store('void_cat', category)
+    const btn = document.getElementById('drop'); btn.disabled = true; setErr('')
+    try {
+      const now = new Date().toISOString()
+      const row = await db.insert(preview ? { id: uuid(), created_at: now, updated_at: now, category, body: text } : { category, body: text })
+      if (!preview) ideas.unshift(row)
+      body.value = ''
+      sayQuote(); gulp(); renderList()
+    } catch (err) { setErr("Couldn't save it (your text is still in the box): " + err.message) }
+    btn.disabled = false; body.focus()
+  }
+}
+
+function sayQuote() {
+  let i; do { i = Math.floor(Math.random() * QUOTES.length) } while (i === lastQuote && QUOTES.length > 1)
+  lastQuote = i; document.getElementById('quote').textContent = QUOTES[i]
+}
+function gulp() { const p = document.getElementById('portal'); p.classList.remove('gulp'); void p.offsetWidth; p.classList.add('gulp') }
+function setErr(m) { const e = document.getElementById('err'); if (e) e.textContent = m }
+
+function renderList() {
+  const counts = Object.fromEntries(CATS.map(([k]) => [k, ideas.filter(x => x.category === k).length]))
+  if (filter !== 'all' && !CAT[filter]) filter = 'all'
+  document.getElementById('filters').innerHTML = [['all', 'Everything'], ...CATS].map(([k, n]) =>
+    `<button class="f" data-f="${k}" aria-pressed="${filter === k}">${esc(n)}<span class="n">${k === 'all' ? ideas.length : counts[k]}</span></button>`).join('')
+  document.querySelectorAll('.f').forEach(b => b.onclick = () => { filter = b.dataset.f; store('void_filter', filter); renderList() })
+  const list = ideas.filter(x => filter === 'all' || x.category === filter)
+  const el = document.getElementById('list')
+  el.innerHTML = list.map(x => editing === x.id ? `
+    <article class="idea" data-id="${x.id}"><div class="h"><span>editing</span></div>
+      <textarea data-eb aria-label="Idea text" maxlength="8000">${esc(x.body)}</textarea>
+      <div class="row"><select data-ec aria-label="Category">${CATS.map(([k, n]) => `<option value="${k}" ${k === x.category ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        <button class="btn sm" data-a="save">save</button><button class="btn sm" data-a="cancel">cancel</button></div></article>` : `
+    <article class="idea" data-id="${x.id}">
+      <div class="h"><span class="c">${esc(CAT[x.category] || x.category)}</span><time datetime="${esc(x.created_at)}" title="${esc(new Date(x.created_at).toLocaleString())}">${when(x.created_at)}</time>${x.updated_at && new Date(x.updated_at) - new Date(x.created_at) > 60e3 ? '<span>· edited</span>' : ''}
+        <span class="acts"><button class="btn sm" data-a="copy" title="Copy the text">copy</button><button class="btn sm" data-a="edit">edit</button><button class="btn sm danger" data-a="del">delete</button></span></div>
+      <div class="b">${esc(x.body)}</div></article>`).join('') ||
+    `<p class="empty">${ideas.length ? 'nothing in this corner of the void.' : 'the void is empty. it is patient.'}</p>`
+  el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => act(b.dataset.a, b.closest('.idea').dataset.id, b))
+  const ed = el.querySelector('[data-eb]'); if (ed) { ed.focus(); ed.setSelectionRange(ed.value.length, ed.value.length) }
+}
+
+async function act(a, id, btn) {
+  const x = ideas.find(i => i.id === id); if (!x) return
+  setErr('')
+  if (a === 'edit') { editing = id; renderList(); return }
+  if (a === 'cancel') { editing = null; renderList(); return }
+  if (a === 'copy') {
+    try { await navigator.clipboard.writeText(x.body); btn.textContent = 'copied' } catch (e) { btn.textContent = 'copy failed' }
+    setTimeout(() => { btn.textContent = 'copy' }, 1500); return
+  }
+  if (a === 'save') {
+    const card = btn.closest('.idea'), body = card.querySelector('[data-eb]').value.trim(), category = card.querySelector('[data-ec]').value
+    if (!body) { setErr('An idea needs some words. To remove it, use delete.'); return }
+    btn.disabled = true
+    try { const row = await db.update(id, { body, category }); Object.assign(x, row); editing = null; renderList() }
+    catch (e) { btn.disabled = false; setErr("Couldn't save the edit: " + e.message) }
+    return
+  }
+  if (a === 'del') {
+    btn.disabled = true
+    try {
+      await db.remove(id)
+      if (!preview) ideas = ideas.filter(i => i.id !== id)
+      renderList(); undoToast(x)
+    } catch (e) { btn.disabled = false; setErr("Couldn't delete it: " + e.message) }
+  }
+}
+
+// delete is instant, with 8 seconds to undo (the same idea comes back with its original id and time)
+function undoToast(x) {
+  const t = document.getElementById('toast')
+  t.innerHTML = `<span>Idea deleted.</span><button class="btn sm" id="undo">undo</button>`
+  t.hidden = false; clearTimeout(toastTimer)
+  document.getElementById('undo').onclick = async () => {
+    clearTimeout(toastTimer); t.hidden = true
+    try {
+      const row = await db.insert({ id: x.id, created_at: x.created_at, updated_at: x.updated_at, category: x.category, body: x.body })
+      if (!preview) { ideas.push(row); ideas.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) }
+      renderList()
+    } catch (e) { setErr("Couldn't undo: " + e.message + '. The text was: ' + x.body) }
+  }
+  toastTimer = setTimeout(() => { t.hidden = true }, 8000)
+}
+</script>
+</body>
+</html>
