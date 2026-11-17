@@ -87,9 +87,9 @@ async function run(mode) {
   assert.deepStrictEqual(neu.cols, { spitz: 1, chatgpt: 2, claude: 1, done: 0 })
   assert(neu.buttons.includes('chatgpt_chat') && neu.buttons.includes('openai_worker'), 'both ChatGPT handoffs offered')
   assert.deepStrictEqual(neu.sent, ['openai_worker'])
-  assert.strictEqual(neu.colours.t1, 'who-gptw', 'ChatGPT worker card is green')
+  assert.strictEqual(neu.colours.t1, 'who-gptw', 'ChatGPT worker card is blue')
   assert.strictEqual(neu.colours.t3, 'who-chatgpt', 'ChatGPT chat card is cyan')
-  assert(/\bgptw\b/.test(neu.workerBtn), 'worker button is green')
+  assert(/\bgptw\b/.test(neu.workerBtn), 'worker button is blue')
   for (const r of [old, neu]) { assert.strictEqual(r.firstPick, '', 'no default for who goes first'); assert(!r.createdWithoutChoice, 'cannot create without choosing') }
   console.log('ok new database: five identities, separate chat and worker handoffs')
 })().catch(e => { console.error(e); process.exit(1) })
