@@ -90,11 +90,17 @@ h1 b{ color:var(--am); }
 .banner::before{ content:'! '; font-weight:700; }
 /* list */
 .filters{ display:flex; gap:6px; flex-wrap:wrap; margin:28px 0 12px; }
-.f{ border:1px solid transparent; background:transparent; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--muted); }
+.f{ flex:none; white-space:nowrap; border:1px solid transparent; background:transparent; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:12px; color:var(--muted); }
 .f:hover{ color:var(--ink); }
 .f[aria-pressed="true"]{ border-color:var(--am); color:var(--am2); }
 .f .n{ opacity:.7; margin-left:4px; }
-.idea{ background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:0 0 10px; overflow-wrap:anywhere; }
+.idea{ background:linear-gradient(180deg, rgba(29,32,46,.86), rgba(22,24,34,.86)); border:1px solid rgba(173,92,255,.32); border-radius:8px; padding:12px 14px; margin:0 0 10px; overflow-wrap:anywhere;
+  box-shadow:0 0 0 1px rgba(173,92,255,.04), 0 8px 26px -14px rgba(173,92,255,.45); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); transition:border-color .2s, box-shadow .2s; }
+.idea:hover{ border-color:rgba(173,92,255,.6); box-shadow:0 0 0 1px rgba(173,92,255,.08), 0 10px 30px -12px rgba(173,92,255,.6); }
+.idea .c{ display:inline-flex; align-items:center; gap:6px; }
+.ci{ width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+/* idea text flying into the black hole */
+.fly{ position:fixed; left:0; top:0; pointer-events:none; z-index:20; color:var(--ink); font-size:16px; line-height:1.5; white-space:pre; will-change:transform,opacity; }
 .idea .h{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:6px; }
 .idea .c{ color:var(--am2); }
 .idea .b{ white-space:pre-wrap; }
@@ -111,7 +117,7 @@ h1 b{ color:var(--am); }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
 .later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
 @media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow{ animation:none; } }
-@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:560px; top:70px; } .far{ width:240px; right:-60px; bottom:-20px; opacity:.55; } .go .btn.primary{ flex:1; } }
+@media (max-width:520px){ .filters{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:-16px; margin-right:-16px; padding:0 16px 4px; scroll-padding:0 16px; } .filters::-webkit-scrollbar{ display:none; } h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:560px; top:70px; } .far{ width:240px; right:-60px; bottom:-20px; opacity:.55; } .go .btn.primary{ flex:1; } }
 </style>
 </head>
 <body>
@@ -129,6 +135,14 @@ h1 b{ color:var(--am); }
 const STUDIO = { supabaseUrl: 'https://klbbcwlddgtsolvsxvwe.supabase.co', supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9' }
 const CATS = [['arcade','Arcade'],['checkpoint','Checkpoint'],['off-the-clock','Off the Clock'],['spitz-dev','spitz.dev'],['random','Random Bullshit']]
 const CAT = Object.fromEntries(CATS)
+const CICON = {
+  arcade:'<rect x="3" y="7" width="18" height="11" rx="4"/><path d="M8 10.5v4M6 12.5h4"/><circle cx="15.5" cy="11.5" r=".6"/><circle cx="17.5" cy="13.8" r=".6"/>',
+  checkpoint:'<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  'off-the-clock':'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>',
+  'spitz-dev':'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 10 3 2.5L7 15M12 15h5"/>',
+  random:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18.5 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>'
+}
+const cico = k => CICON[k] ? `<svg class="ci" viewBox="0 0 24 24" aria-hidden="true">${CICON[k]}</svg>` : ''
 const QUOTES = [
   'Your idea has been consumed. Your responsibilities have not increased.',
   "Claude has not been notified. You're welcome.",
@@ -263,7 +277,7 @@ function shell() {
       const now = new Date().toISOString()
       const row = await db.insert(preview ? { id: uuid(), created_at: now, updated_at: now, category, body: text } : { category, body: text })
       if (!preview) ideas.unshift(row)
-      body.value = ''
+      suckIn(body, text); body.value = ''
       sayQuote(); gulp(); renderList()
     } catch (err) { setErr("Couldn't save it (your text is still in the box): " + err.message) }
     btn.disabled = false; body.focus()
@@ -276,6 +290,43 @@ function sayQuote() {
 }
 function gulp() { const p = document.getElementById('portal'), h = document.getElementById('hero'); p.classList.remove('gulp'); void p.offsetWidth; p.classList.add('gulp')
   h.classList.add('gulping'); clearTimeout(gulp.t); gulp.t = setTimeout(() => h.classList.remove('gulping'), 1600) }
+// The dropped text breaks into words that spiral into the black hole. Reduced motion: skipped.
+function suckIn(ta, text) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !document.body.animate) return
+  const p = document.getElementById('portal'); if (!p) return
+  const tr = ta.getBoundingClientRect(), pr = p.getBoundingClientRect(), cx = pr.left + pr.width / 2, cy = pr.top + pr.height / 2
+  const cs = getComputedStyle(ta), padL = parseFloat(cs.paddingLeft), padT = parseFloat(cs.paddingTop)
+  // lay the words out roughly where they sat in the box (first 40 words, first 4 lines)
+  const meas = document.createElement('span'); meas.className = 'fly'; meas.style.visibility = 'hidden'; document.body.appendChild(meas)
+  const words = text.replace(/\s+/g, ' ').split(' ').filter(Boolean).slice(0, 40), lineH = parseFloat(cs.lineHeight) || 24, maxW = tr.width - padL * 2
+  let x = 0, line = 0; const items = []
+  for (const w of words) {
+    meas.textContent = w; const ww = meas.getBoundingClientRect().width
+    meas.textContent = ' '; const sp = meas.getBoundingClientRect().width || 9
+    if (x && x + ww > maxW) { x = 0; line++ }
+    if (line > 3) break
+    items.push({ w, x: tr.left + padL + x, y: tr.top + padT + line * lineH, ww }); x += ww + sp
+  }
+  meas.remove()
+  const ph = ta.placeholder; ta.placeholder = ''; setTimeout(() => { ta.placeholder = ph }, 1700) // keep the box clean while the words leave
+  items.forEach((it, i) => {
+    const el = document.createElement('span'); el.className = 'fly'; el.textContent = it.w; document.body.appendChild(el)
+    const sx = it.x + it.ww / 2, sy = it.y + lineH / 2
+    const a0 = Math.atan2(sy - cy, sx - cx), r0 = Math.hypot(sx - cx, sy - cy), turn = 1.6 + Math.random() * .6, dir = sx < cx ? -1 : 1
+    const frames = []
+    // starts exactly where the word sat in the box, trembles for a beat as the pull starts, then spirals in faster and faster
+    const N = 14, home = `translate(${it.x}px,${it.y}px)`
+    frames.push({ transform: home, opacity: 1, color: '#F2F0F8', offset: 0 })
+    frames.push({ transform: `translate(${it.x + Math.cos(a0 + Math.PI) * 2}px,${it.y + 1}px) rotate(${-dir * 2}deg)`, opacity: 1, color: '#F2F0F8', offset: .12 })
+    for (let f = 1; f <= N; f++) {
+      const k = f / N, e = k * k * k, r = r0 * (1 - e), a = a0 + dir * turn * Math.PI * e, sq = 1 - .45 * Math.min(1, e * 1.6)
+      const px = cx + Math.cos(a) * r - it.ww / 2, py = cy + Math.sin(a) * r * sq - lineH / 2
+      frames.push({ transform: `translate(${px}px,${py}px) rotate(${dir * e * 260}deg) scale(${1 - e * .92})`, opacity: f === N ? 0 : 1 - e * .3, color: e > .35 ? '#CEADFF' : '#F2F0F8', offset: .12 + .88 * k })
+    }
+    el.style.transform = home
+    el.animate(frames, { duration: 1500 + Math.random() * 300, delay: i * 18, easing: 'linear', fill: 'both' }).onfinish = () => el.remove()
+  })
+}
 function setErr(m) { const e = document.getElementById('err'); if (e) e.textContent = m }
 
 function renderList() {
@@ -292,7 +343,7 @@ function renderList() {
       <div class="row"><select data-ec aria-label="Category">${CATS.map(([k, n]) => `<option value="${k}" ${k === x.category ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
         <button class="btn sm" data-a="save">save</button><button class="btn sm" data-a="cancel">cancel</button></div></article>` : `
     <article class="idea" data-id="${x.id}">
-      <div class="h"><span class="c">${esc(CAT[x.category] || x.category)}</span><time datetime="${esc(x.created_at)}" title="${esc(new Date(x.created_at).toLocaleString())}">${when(x.created_at)}</time>${x.updated_at && new Date(x.updated_at) - new Date(x.created_at) > 60e3 ? '<span>· edited</span>' : ''}
+      <div class="h"><span class="c">${cico(x.category)}${esc(CAT[x.category] || x.category)}</span><time datetime="${esc(x.created_at)}" title="${esc(new Date(x.created_at).toLocaleString())}">${when(x.created_at)}</time>${x.updated_at && new Date(x.updated_at) - new Date(x.created_at) > 60e3 ? '<span>· edited</span>' : ''}
         <span class="acts"><button class="btn sm" data-a="copy" title="Copy the text">copy</button><button class="btn sm" data-a="edit">edit</button><button class="btn sm danger" data-a="del">delete</button></span></div>
       <div class="b">${esc(x.body)}</div></article>`).join('') ||
     `<p class="empty">${ideas.length ? 'nothing in this corner of the void.' : 'the void is empty. it is patient.'}</p>`

@@ -84,6 +84,13 @@ main{ padding:18px 20px 40px; }
   main:has(> .board) #status{ margin:10px 0 0; }
 }
 .empty::before{ content:'// '; }
+/* empty column: a dim icon in the column's color */
+.empty2{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:32px 8px; color:var(--muted); font-size:12px; text-align:center; }
+.empty2 svg{ width:40px; height:40px; fill:none; stroke:var(--c,var(--muted)); stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round; opacity:.5; }
+/* art thumbnail on a board card */
+.card .thumb{ float:right; width:56px; height:56px; object-fit:contain; image-rendering:pixelated; margin:0 0 6px 10px; border-radius:4px; border:1px solid var(--line);
+  background:repeating-conic-gradient(#272A3B 0 25%,#1D202E 0 50%) 0 0/10px 10px; }
+.card::after{ content:''; display:block; clear:both; }
 .who-kody{ --c:var(--kody); --ct:var(--kody-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
 /* layout + side bar (like Checkpoint's) */
 body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
@@ -185,7 +192,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .health.bad, .health b{ color:var(--warn); }
 .health.bad::before{ content:'! '; }
 /* one task: use the whole width, with a big picture beside the messages */
-@media (min-width:761px){ .nowgrid.n1 .nb2{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); } .nowgrid.n1 .art img{ max-height:min(560px,60vh); } .nowgrid.n1 .clip{ -webkit-line-clamp:7; } .nowgrid.n2 .nb2{ grid-template-columns:minmax(0,2fr) minmax(0,3fr); } .nowgrid.n2 .art img{ max-height:360px; } }
+@media (min-width:761px){ .nowgrid.n1 .nb2{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); } .nowgrid.n1 .art img{ max-height:min(560px,60vh); } .nowgrid.n1 .clip{ -webkit-line-clamp:7; } .nowgrid.n2 .nb2{ grid-template-columns:minmax(0,2fr) minmax(0,3fr); } .nowgrid.n2 .art img{ max-height:360px; } .nowgrid .nb2.noimg{ grid-template-columns:minmax(0,1fr); } }
 @media (max-width:760px){ .nb2{ grid-template-columns:minmax(0,1fr); } .art img{ max-height:260px; } .row1{ flex-direction:column; gap:2px; } .row1 .t{ white-space:normal; } }
 /* drawer */
 .shade{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:none; }
@@ -224,7 +231,8 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .qr{ margin-top:12px; }
 .qr textarea{ width:100%; min-height:56px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; caret-color:var(--orange); }
 .qr textarea:focus{ border-color:var(--orange); outline:none; }
-.qr .row{ margin-top:6px; }
+.qr .row{ margin-top:6px; gap:6px; }
+.qr .row .btn{ padding:6px 10px; font-size:13px; white-space:nowrap; }
 .start{ margin-top:8px; } a.btn{ text-decoration:none; display:inline-block; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
 .err{ color:var(--bad); font-size:12px; }
@@ -431,23 +439,70 @@ function renderBoard() {
     return `<button class="nb who-${k} ${view === k ? 'on' : ''}" data-v="${k}" title="${name}">${ico(k)}<span class="lbl">${name}</span><span class="n">${n || ''}</span></button>`
   }).join('')
   document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
-  const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
+  const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
         <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
   const keyOf = t => F.done(t) ? 'done' : F.kody(t) ? 'kody' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
+  const before = flipStart(b)
   if (view === 'board') {
     b.className = 'board'
     b.innerHTML = ['kody','chatgpt','claude','done'].map(k => {
       const list = vis.filter(F[k]).slice(0, k === 'done' ? 20 : 100), name = VIEWS.find(v => v[0] === k)[1]
-      return `<section class="col who-${k}"><h2>${name} <span class="count">${list.length}</span></h2><div class="cb">${list.map(t => card(t, k)).join('') || '<div class="empty">nothing here</div>'}</div></section>`
+      return `<section class="col who-${k}" data-k="${k}"><h2>${name} <span class="count">${list.length}</span></h2><div class="cb">${list.map(t => card(t, k)).join('') || emptyCol(k)}</div></section>`
     }).join('')
   } else {
     const list = vis.filter(F[view]), name = VIEWS.find(v => v[0] === view)[1]
     b.className = 'list who-' + view
-    b.innerHTML = `<h2 class="lh">${name} <span class="count">${list.length}</span></h2><div class="grid">${list.map(t => card(t, keyOf(t))).join('') || '<div class="empty">nothing here</div>'}</div>`
+    b.innerHTML = `<h2 class="lh">${name} <span class="count">${list.length}</span></h2><div class="grid">${list.map(t => card(t, keyOf(t))).join('') || emptyCol(view)}</div>`
   }
+  flipEnd(b, before)
+  boardThumbs(view === 'board' ? vis.filter(t => !F.done(t) || vis.filter(F.done).indexOf(t) < 20) : vis.filter(F[view]))
   document.querySelectorAll('.card').forEach(c => c.onclick = () => renderTask(c.dataset.id))
+}
+
+// ---- Board polish: empty columns, art thumbnails, cards slide when they change turn
+const EMPTY = { kody:'nothing on your plate', chatgpt:'ChatGPT has nothing queued', claude:'Claude has nothing queued', done:'nothing finished yet' }
+const emptyCol = k => `<div class="empty2">${ico(k)}<span>${EMPTY[k] || 'nothing here'}</span></div>`
+const thumbCache = {} // task id -> { v: updated_at, asset }
+function thumbHtml(t) {
+  const c = thumbCache[t.id], a = c && c.asset, u = a && urlCache[a.id] && urlCache[a.id].exp > Date.now() && urlCache[a.id].url
+  return u ? `<img class="thumb" src="${u}" alt="" loading="lazy">` : ''
+}
+async function boardThumbs(list) {
+  try {
+    const need = list.filter(t => !thumbCache[t.id] || thumbCache[t.id].v !== t.updated_at)
+    if (need.length) {
+      const { data, error } = await sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('task_id', need.map(t => t.id)).order('created_at', { ascending: false }).limit(300)
+      if (error) return
+      need.forEach(t => { thumbCache[t.id] = { v: t.updated_at, asset: (data || []).find(a => a.task_id === t.id) || null } })
+    }
+    const assets = list.map(t => thumbCache[t.id] && thumbCache[t.id].asset).filter(Boolean)
+    if (!assets.length) return
+    const url = await signedUrls(assets)
+    for (const a of assets) {
+      const c = document.querySelector(`.card[data-id="${a.task_id}"]`)
+      if (c && !c.querySelector('.thumb') && url(a.id)) c.insertAdjacentHTML('afterbegin', `<img class="thumb" src="${url(a.id)}" alt="" loading="lazy">`)
+    }
+  } catch (e) { /* thumbnails are a nice-to-have */ }
+}
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches
+function flipStart(b) {
+  const m = {}
+  b.querySelectorAll('.card[data-id]').forEach(c => { const col = c.closest('[data-k]'); m[c.dataset.id] = { r: c.getBoundingClientRect(), k: col ? col.dataset.k : '' } })
+  return m
+}
+function flipEnd(b, before) {
+  if (calm() || !Object.keys(before).length || !b.animate) return
+  b.querySelectorAll('.card[data-id]').forEach(c => {
+    const was = before[c.dataset.id], r = c.getBoundingClientRect()
+    if (!was) { c.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 350, easing: 'ease-out' }); return }
+    const dx = was.r.left - r.left, dy = was.r.top - r.top
+    if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return
+    const col = c.closest('[data-k]'), moved = col && col.dataset.k !== was.k
+    c.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: moved ? 650 : 300, easing: 'cubic-bezier(.2,.8,.2,1)' })
+    if (moved) c.animate([{ borderColor: 'var(--c)' }, { borderColor: 'var(--c)', offset: .7 }, { borderColor: 'var(--line)' }], { duration: 1600 })
+  })
 }
 
 // ---- Now view: built for 1 or 2 active tasks. One big card each, real worker state, recent finishes below.
