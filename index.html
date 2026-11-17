@@ -8,7 +8,7 @@
 <link rel="icon" type="image/png" href="burger_line_64.png">
 <link rel="apple-touch-icon" href="icon_180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#0B0C14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="spitz.dev">
@@ -19,14 +19,23 @@
 /* spitz.dev: Kody's board for the tasks ChatGPT and Claude share (Task Drop). Private: sign-in required, noindex.
    Look: terminal. Black and charcoal, burger-orange outlines, one mono font. */
 :root{
-  --bg:#0a0a0b; --panel:#121315; --panel2:#18191c; --line:#2a2b2f; --ink:#e9e6e1; --muted:#9a9893;
-  --orange:#fc7301; --orange2:#ff9a3d;
-  --kody:#fc7301; --chatgpt:#20e6ae; --claude:#b45aff; --done:#6f6e6a; --bad:#ff5a5f; --link:#ff9a3d;
+  /* Colors follow design/tokens.css (spitz.dev color system). Neutral first, identity second, status third. */
+  --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
+  --orange:#FF892E; --orange2:#FFAD74;
+  /* identity: borders/marks use the -line shade; small text uses the -text shade */
+  --kody:#FF892E; --chatgpt:#19CFF5; --claude:#D0445F; --done:#A5A8B5;
+  --kody-text:#FFAC6F; --chatgpt-text:#9BEAFF; --claude-text:#E77791; --done-text:#A5A8B5;
+  --void:#AD5CFF; --void-text:#CEADFF;
+  /* status: always paired with a word, and an icon where it is shown alone */
+  --good:#8ED8B1; --warn:#E9BD70; --bad:#FF8293;
+  /* interaction */
+  --link:#D4DCF4; --hover:#FFAD74; --focus:#FFE2AA;
 }
 *{ box-sizing:border-box; }
 html,body{ margin:0; overflow-x:hidden; max-width:100%; background:var(--bg); color:var(--ink); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; }
 button,input,textarea,select{ font:inherit; color:inherit; }
 a{ color:var(--link); }
+a:hover{ color:var(--hover); }
 ::selection{ background:var(--orange); color:#000; }
 header{ display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--orange); position:sticky; top:0; background:var(--bg); z-index:5; flex-wrap:wrap; }
 .mark{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:17px; }
@@ -41,8 +50,8 @@ header{ display:flex; align-items:center; gap:14px; padding:12px 20px; border-bo
 .btn:hover{ border-color:var(--orange); color:var(--orange2); }
 .btn.primary{ border-color:var(--orange); color:var(--orange); font-weight:700; }
 .btn.primary:hover{ background:var(--orange); color:#000; }
-.btn.gpt{ border-color:var(--chatgpt); color:var(--chatgpt); }
-.btn.cl{ border-color:var(--claude); color:var(--claude); }
+.btn.gpt{ border-color:var(--chatgpt); color:var(--chatgpt-text); }
+.btn.cl{ border-color:var(--claude); color:var(--claude-text); }
 .btn.dn{ color:var(--muted); }
 .btn:disabled{ opacity:.5; cursor:default; }
 .chips{ display:flex; gap:4px; flex-wrap:wrap; }
@@ -75,7 +84,7 @@ main{ padding:18px 20px 40px; }
   main:has(> .board) #status{ margin:10px 0 0; }
 }
 .empty::before{ content:'// '; }
-.who-kody{ --c:var(--kody); } .who-chatgpt{ --c:var(--chatgpt); } .who-claude{ --c:var(--claude); } .who-done{ --c:var(--done); }
+.who-kody{ --c:var(--kody); --ct:var(--kody-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
 /* layout + side bar (like Checkpoint's) */
 body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
 body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
@@ -99,14 +108,14 @@ body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
 .nb{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent; border:1px solid transparent; border-radius:6px; padding:8px 10px; cursor:pointer; color:var(--ink); }
 .nb:hover{ border-color:var(--line); color:var(--orange2); }
 .nb.on{ background:var(--orange); color:#000; font-weight:700; }
-.nb .n{ margin-left:auto; font-size:12px; color:var(--c,var(--muted)); }
+.nb .n{ margin-left:auto; font-size:12px; color:var(--ct,var(--muted)); }
 .nb.on .n{ color:#000; }
 .newb{ border-color:var(--orange); color:var(--orange); font-weight:700; }
-a.nb.void{ text-decoration:none; color:#b45aff; } a.nb.void:hover{ border-color:#b45aff; color:#cf95ff; }
+a.nb.void{ text-decoration:none; color:var(--void-text); } a.nb.void:hover{ border-color:var(--void); color:var(--void-text); }
 nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--line); padding-top:10px; }
 .foot{ display:flex; align-items:center; gap:4px; border-top:1px solid var(--line); padding-top:10px; }
 .live{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-right:auto; padding-left:4px; }
-.live i{ width:8px; height:8px; border-radius:50%; background:var(--chatgpt); }
+.live i{ width:8px; height:8px; border-radius:50%; background:var(--good); }
 .live.off i{ background:var(--bad); }
 .side .who{ font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mini .side{ padding:14px 8px; align-items:center; }
@@ -144,17 +153,18 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .now{ background:var(--panel); border:1px solid var(--line); border-top:2px solid var(--c); border-radius:6px; padding:14px 16px; min-width:0; overflow-wrap:anywhere; }
 .now.who-kody{ border-color:var(--orange); }
 .nh{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.pill{ border:1px solid var(--c); color:var(--c); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
+.pill{ border:1px solid var(--c); color:var(--ct,var(--c)); border-radius:999px; padding:1px 10px; font-size:12px; font-weight:700; }
 .nt{ margin:8px 0 6px; font-size:17px; line-height:1.35; }
 .state{ font-size:13px; color:var(--ink); }
-.state b{ color:var(--c); }
+.state b{ color:var(--ct,var(--c)); }
 .state.work b::after{ content:' ●'; color:var(--c); }
-.state.warn b, .state.bad b{ color:var(--bad); }
+.state.warn b{ color:var(--warn); } .state.warn b::before{ content:'! '; }
+.state.bad b{ color:var(--bad); } .state.bad b::before{ content:'× '; }
 .next{ margin-top:4px; font-size:13px; color:var(--muted); }
 .next.hot{ color:var(--orange2); }
 .nb2{ display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:16px; margin-top:14px; }
 .nb2.noimg{ grid-template-columns:minmax(0,1fr); }
-.art{ display:block; background:repeating-conic-gradient(#1b1c1f 0 25%,#131416 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:8px; text-decoration:none; align-self:start; }
+.art{ display:block; background:repeating-conic-gradient(#1D202E 0 25%,#161822 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:8px; text-decoration:none; align-self:start; }
 .art:hover{ border-color:var(--orange); }
 .art img{ display:block; width:100%; height:auto; max-height:300px; object-fit:contain; image-rendering:pixelated; }
 .art .cap{ display:block; font-size:11px; color:var(--muted); margin-top:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -172,7 +182,8 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .row1 .sub{ white-space:nowrap; }
 .recent .lnk{ align-self:flex-start; margin-top:4px; }
 .health{ margin:22px 0 0; font-size:12px; color:var(--muted); }
-.health.bad, .health b{ color:var(--bad); }
+.health.bad, .health b{ color:var(--warn); }
+.health.bad::before{ content:'! '; }
 /* one task: use the whole width, with a big picture beside the messages */
 @media (min-width:761px){ .nowgrid.n1 .nb2{ grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); } .nowgrid.n1 .art img{ max-height:min(560px,60vh); } .nowgrid.n1 .clip{ -webkit-line-clamp:7; } .nowgrid.n2 .nb2{ grid-template-columns:minmax(0,2fr) minmax(0,3fr); } .nowgrid.n2 .art img{ max-height:360px; } }
 @media (max-width:760px){ .nb2{ grid-template-columns:minmax(0,1fr); } .art img{ max-height:260px; } .row1{ flex-direction:column; gap:2px; } .row1 .t{ white-space:normal; } }
@@ -188,21 +199,21 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .pre{ white-space:pre-wrap; word-wrap:break-word; }
 .msg{ border-left:2px solid var(--c); padding:2px 0 2px 12px; margin:0 0 18px; }
 .msg .h{ font-size:11px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:2px; }
-.who{ color:var(--c); font-weight:700; font-size:12px; }
+.who{ color:var(--ct,var(--c)); font-weight:700; font-size:12px; }
 .who::before{ content:'$ '; color:var(--muted); font-weight:400; }
 .tag{ color:var(--muted); }
 .dhead .sub, .state{ overflow-wrap:anywhere; }
 @media (max-width:760px){ #rs .state{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; } #rs .nx{ display:none; } }
 .ev{ display:flex; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted); padding:1px 0 1px 12px; border-left:2px solid var(--line); margin:-10px 0 14px; }
 .ev .at{ font-variant-numeric:tabular-nums; }
-.ev .who2{ color:var(--c); }
+.ev .who2{ color:var(--ct,var(--c)); }
 .ev.who-system{ --c:var(--orange); }
 .ev .d{ flex:1 1 220px; min-width:0; overflow-wrap:anywhere; color:var(--ink); opacity:.8; }
 .ev.good .d{ opacity:1; }
 .ev.bad .d{ color:var(--bad); opacity:1; }
 .tag::before{ content:'['; } .tag::after{ content:']'; }
 .thumbs{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
-.thumb{ background:repeating-conic-gradient(#1b1c1f 0 25%,#131416 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:6px; max-width:100%; text-decoration:none; }
+.thumb{ background:repeating-conic-gradient(#1D202E 0 25%,#161822 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:6px; max-width:100%; text-decoration:none; }
 .thumb:hover{ border-color:var(--orange); }
 .thumb img{ display:block; max-width:min(320px,100%); max-height:220px; image-rendering:pixelated; }
 .thumb .cap{ font-size:11px; color:var(--muted); margin-top:4px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -217,7 +228,8 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .start{ margin-top:8px; } a.btn{ text-decoration:none; display:inline-block; }
 .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; align-items:center; }
 .err{ color:var(--bad); font-size:12px; }
-.ok{ color:var(--chatgpt); font-size:12px; }
+.blk{ color:var(--warn); } .blk::before{ content:'! '; }
+.ok{ color:var(--good); font-size:12px; }
 /* login */
 .login{ min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 16px; text-align:center; }
 .login img{ width:min(220px,55vw); height:auto; display:block; margin-bottom:18px; }
@@ -238,7 +250,7 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .field input,.field textarea,.field select{ width:100%; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:9px 10px; caret-color:var(--orange); }
 .field input:focus,.field textarea:focus,.field select:focus{ border-color:var(--orange); outline:none; }
 .field textarea{ min-height:180px; }
-:focus-visible{ outline:1px solid var(--orange); outline-offset:2px; }
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
 </style>
 </head>
 <body>
@@ -420,7 +432,7 @@ function renderBoard() {
   }).join('')
   document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
   const card = (t, k) => `<button class="card who-${k}" data-id="${t.id}"><div class="t">${esc(t.title)}</div>
-        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="err">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
   const keyOf = t => F.done(t) ? 'done' : F.kody(t) ? 'kody' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
