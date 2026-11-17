@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>the void · spitz.dev</title>
-<link rel="icon" type="image/png" href="../burger_line_64.png">
+<link rel="icon" type="image/png" href="burger_void_64.png">
 <link rel="apple-touch-icon" href="../icon_180.png">
 <meta name="theme-color" content="#07060a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,6 +32,7 @@ header{ display:flex; align-items:center; gap:10px; padding:14px 0; }
 header .back{ color:var(--muted); text-decoration:none; font-size:12px; border:1px solid var(--line); border-radius:6px; padding:5px 10px; }
 header .back:hover{ color:var(--am2); border-color:var(--am); }
 .grow{ flex:1; }
+header .mark{ width:40px; height:auto; margin-left:auto; }
 .sub{ color:var(--muted); font-size:12px; }
 /* hero: the portal (custom line art, void/portal.png) inside a slowly turning dashed ring. */
 .hero{ text-align:center; padding:18px 0 22px; }
@@ -171,7 +172,7 @@ async function start() {
 }
 
 function shell() {
-  app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><span class="grow"></span><span class="sub" id="mode"></span></header>
+  app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><img class="mark" src="burger_void_192.png" alt="" width="40" height="32"><span class="sub" id="mode"></span></header>
     <section class="hero"><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><img src="portal.png" alt="" width="512" height="512"></div>
       <h1>the <b>void</b></h1><p class="tag">Get it out of your head. Into the void.</p></section>
     ${preview ? `<div class="banner"><b>Local preview.</b> Ideas are saved only in this browser on this device, until the void_ideas database update is applied. Nothing is synced yet.</div>` : ''}
