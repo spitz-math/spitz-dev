@@ -1,5 +1,5 @@
 // Dashboard with the Phase 2/3 database (migration 20261118010000_typed_tasks_refs_status): ready check,
-// picture status, Approve / Reject / Mark ready. Also checks nothing new shows on a Phase 1 database.
+// picture status (read only: Kody approves art in the Claude thread). Also checks nothing new shows on a Phase 1 database.
 // Run: node tests/phase2.test.js   (SHOT=/path.png saves a screenshot of the task drawer)
 const assert = require('assert')
 const path = require('path')
@@ -63,15 +63,10 @@ async function run(phase) {
   r.ready = await page.$eval('#drawer', d => (d.querySelector('.rdy') || {}).innerText || '')
   r.disabled = await page.$$eval('.compose .btn', bs => bs.filter(b => b.disabled).map(b => b.dataset.a))
   r.badges = await page.$$eval('.ti', ts => ts.map(t => [...t.querySelectorAll('.badge')].map(b => b.textContent).join('/')))
-  r.buttons = await page.$$eval('.ti', ts => ts.map(t => [...t.querySelectorAll('.rv .btn')].map(b => b.textContent).join('/')))
+  r.buttons = await page.$$eval('.ti .rv .btn', bs => bs.length)
+  r.tips = await page.$$eval('.ti', ts => ts.map(t => (t.querySelector('.rv .sub') || {}).textContent || ''))
   if (process.env.SHOT && phase === 2) await page.screenshot({ path: process.env.SHOT })
   if (phase === 2) {
-    await page.click('[data-rv="approved"][data-as="a1"]')
-    await page.waitForFunction(() => document.querySelector('.ti .badge').textContent === 'approved')
-    r.afterApprove = await page.$$eval('.ti', ts => ts.map(t => [...t.querySelectorAll('.badge')].map(b => b.textContent).join('/')))
-    await page.click('[data-mr="a2"]')
-    await page.waitForSelector('.rv .err')
-    r.markErr = await page.$eval('.rv .err', e => e.textContent)
     // a plain task shows no ready box and nothing disabled
     await page.click('#drawer #x'); await page.click('.card[data-id="t2"]'); await page.waitForSelector('.compose .btn'); await page.waitForTimeout(200)
     r.plainReady = await page.$$eval('.rdy', x => x.length)
@@ -97,9 +92,9 @@ async function run(phase) {
   assert(/ChatGPT worker can't take this one/.test(p2.ready), 'refine job says the API worker cannot take it')
   assert.deepStrictEqual(p2.disabled.sort(), ['chatgpt_chat', 'claude', 'openai_worker'], 'handoffs disabled, note still allowed')
   assert.deepStrictEqual(p2.badges, ['draft/check failed', 'approved/check passed', 'ready/check passed'])
-  assert.deepStrictEqual(p2.buttons, ['Approve/Reject', 'Reject/Mark ready', ''])
-  assert.deepStrictEqual(p2.afterApprove[0], 'approved/check failed', 'Approve updates the picture')
-  assert(/Not ready/.test(p2.markErr), 'server refusal is shown')
+  assert.strictEqual(p2.buttons, 0, 'no approve buttons: Kody approves in the Claude thread')
+  assert.deepStrictEqual(p2.tips, ['approve it in the Claude thread', '', ''])
+  assert(!p2.calls.includes('studio_review_asset') && !p2.calls.includes('studio_mark_ready'))
   assert.strictEqual(p2.plainReady, 0); assert.strictEqual(p2.plainDisabled, 0)
-  console.log('ok Phase 2 database: ready check, picture status, approve, mark ready refusal shown')
+  console.log('ok Phase 2 database: ready check, picture status (approval happens in the Claude thread)')
 })().catch(e => { console.error(e); process.exit(1) })

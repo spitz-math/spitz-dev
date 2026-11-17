@@ -777,10 +777,9 @@ async function renderTask(id, quiet) {
   const review = a => {
     const s = st[a.id]; if (!TT || !s) return ''
     const v = val[a.id], vb = v ? `<span class="badge ${VAL[v][0]}" title="Newest automatic check of this exact file">${VAL[v][1]}</span>` : '<span class="badge" title="No automatic check of this file yet">not checked</span>'
-    const btns = s.status === 'ready' ? '' : (s.status !== 'approved' ? `<button class="btn" data-rv="approved" data-as="${a.id}">Approve</button>` : '')
-      + (s.status !== 'failed' ? `<button class="btn" data-rv="rejected" data-as="${a.id}">Reject</button>` : '')
-      + (s.status === 'approved' && v === 'PASS' ? `<button class="btn primary" data-mr="${a.id}" title="Approved by you and the check passed">Mark ready</button>` : '')
-    return `<div class="rv"><span class="badge ${s.status}">${s.status}</span>${vb}${btns}</div>`
+    // approving happens in the Claude thread that puts the art in the game (Kody's rule), so this is status only
+    const tip = s.status === 'draft' ? '<span class="sub">approve it in the Claude thread</span>' : ''
+    return `<div class="rv"><span class="badge ${s.status}">${s.status}</span>${vb}${tip}</div>`
   }
   const thumb = a => { shown.add(a.id); return `<div class="ti"><a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>${review(a)}</div>` }
   const refsHtml = refs => {
@@ -841,13 +840,6 @@ async function renderTask(id, quiet) {
   }
   const ta = d.querySelector('#body'); ta.value = draft
   d.querySelectorAll('.compose .btn').forEach(b => b.onclick = () => post(t, b.dataset.a))
-  d.querySelectorAll('[data-rv],[data-mr]').forEach(b => b.onclick = async () => {
-    const row = b.closest('.rv'); row.querySelectorAll('.btn').forEach(x => x.disabled = true)
-    const { error } = b.dataset.mr ? await sb.rpc('studio_mark_ready', { p_asset_id: b.dataset.mr })
-      : await sb.rpc('studio_review_asset', { p_asset_id: b.dataset.as, p_verdict: b.dataset.rv })
-    if (error) { row.insertAdjacentHTML('beforeend', `<span class="err">${esc(error.message)}</span>`); row.querySelectorAll('.btn').forEach(x => x.disabled = false); return }
-    if (openId === t.id) renderTask(t.id, true)
-  })
   const db = d.querySelector('.dbody')
   if (keep) {
     if (keep.brief !== undefined) d.querySelector('details.brief').open = keep.brief
