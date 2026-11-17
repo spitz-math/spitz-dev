@@ -308,18 +308,23 @@ function suckIn(ta, text) {
     items.push({ w, x: tr.left + padL + x, y: tr.top + padT + line * lineH, ww }); x += ww + sp
   }
   meas.remove()
+  const ph = ta.placeholder; ta.placeholder = ''; setTimeout(() => { ta.placeholder = ph }, 1700) // keep the box clean while the words leave
   items.forEach((it, i) => {
     const el = document.createElement('span'); el.className = 'fly'; el.textContent = it.w; document.body.appendChild(el)
     const sx = it.x + it.ww / 2, sy = it.y + lineH / 2
     const a0 = Math.atan2(sy - cy, sx - cx), r0 = Math.hypot(sx - cx, sy - cy), turn = 1.6 + Math.random() * .6, dir = sx < cx ? -1 : 1
     const frames = []
-    for (let f = 0; f <= 8; f++) {
-      const k = f / 8, e = k * k, r = r0 * (1 - e), a = a0 + dir * turn * Math.PI * e
-      const px = cx + Math.cos(a) * r - it.ww / 2, py = cy + Math.sin(a) * r * .55 - lineH / 2
-      frames.push({ transform: `translate(${px}px,${py}px) rotate(${dir * e * 260}deg) scale(${1 - e * .92})`, opacity: f === 8 ? 0 : 1 - e * .4, color: f > 4 ? '#CEADFF' : '#F2F0F8' })
+    // starts exactly where the word sat in the box, trembles for a beat as the pull starts, then spirals in faster and faster
+    const N = 14, home = `translate(${it.x}px,${it.y}px)`
+    frames.push({ transform: home, opacity: 1, color: '#F2F0F8', offset: 0 })
+    frames.push({ transform: `translate(${it.x + Math.cos(a0 + Math.PI) * 2}px,${it.y + 1}px) rotate(${-dir * 2}deg)`, opacity: 1, color: '#F2F0F8', offset: .12 })
+    for (let f = 1; f <= N; f++) {
+      const k = f / N, e = k * k * k, r = r0 * (1 - e), a = a0 + dir * turn * Math.PI * e, sq = 1 - .45 * Math.min(1, e * 1.6)
+      const px = cx + Math.cos(a) * r - it.ww / 2, py = cy + Math.sin(a) * r * sq - lineH / 2
+      frames.push({ transform: `translate(${px}px,${py}px) rotate(${dir * e * 260}deg) scale(${1 - e * .92})`, opacity: f === N ? 0 : 1 - e * .3, color: e > .35 ? '#CEADFF' : '#F2F0F8', offset: .12 + .88 * k })
     }
-    el.style.transform = frames[0].transform
-    el.animate(frames, { duration: 1100 + Math.random() * 300, delay: i * 22, easing: 'cubic-bezier(.5,0,.9,.6)', fill: 'both' }).onfinish = () => el.remove()
+    el.style.transform = home
+    el.animate(frames, { duration: 1500 + Math.random() * 300, delay: i * 18, easing: 'linear', fill: 'both' }).onfinish = () => el.remove()
   })
 }
 function setErr(m) { const e = document.getElementById('err'); if (e) e.textContent = m }
