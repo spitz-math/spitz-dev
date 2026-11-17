@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>spitz.dev colors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:var(--sd-bg); color:var(--sd-text); font:14px/1.55 'JetBrains Mono',ui-monospace,monospace; overflow-x:hidden; }
+a{ color:var(--sd-act-link); } a:hover{ color:var(--sd-act-hover); }
+:focus-visible{ outline:2px solid var(--sd-act-focus); outline-offset:2px; }
+header{ padding:16px; border-bottom:1px solid var(--sd-id-spitz-line); background:var(--sd-atmo-spitz); }
+header h1{ margin:0; font-size:18px; } header h1 b{ color:var(--sd-id-spitz); }
+header p{ margin:4px 0 0; color:var(--sd-text-2); font-size:12px; }
+main{ max-width:1080px; margin:0 auto; padding:16px 16px 48px; }
+section{ margin:0 0 28px; }
+h2{ font-size:14px; margin:0 0 4px; } h2::before{ content:'> '; color:var(--sd-muted); }
+.note{ color:var(--sd-text-2); font-size:12px; margin:0 0 12px; max-width:72ch; }
+.grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.sw{ border:1px solid var(--sd-line); border-radius:6px; overflow:hidden; background:var(--sd-panel); min-width:0; }
+.sw i{ display:block; height:44px; }
+.sw div{ padding:6px 8px; font-size:11px; color:var(--sd-text-2); overflow-wrap:anywhere; }
+.sw b{ color:var(--sd-text); display:block; font-size:12px; }
+.row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+/* actor chip: identity */
+.actor{ display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border:1px solid var(--a-line); border-radius:999px; color:var(--a-text); font-size:12px; font-weight:600; }
+.actor::before{ content:''; width:8px; height:8px; border-radius:50%; background:var(--a); }
+.a-kody{ --a:var(--sd-id-kody); --a-text:var(--sd-id-kody-text); --a-line:var(--sd-id-kody-line); }
+.a-chatgpt{ --a:var(--sd-id-chatgpt); --a-text:var(--sd-id-chatgpt-text); --a-line:var(--sd-id-chatgpt-line); }
+.a-claude{ --a:var(--sd-id-claude); --a-text:var(--sd-id-claude-text); --a-line:var(--sd-id-claude-line); }
+.a-void{ --a:var(--sd-id-void); --a-text:var(--sd-id-void-text); --a-line:var(--sd-id-void-line); }
+/* status pill: always icon + word */
+.st{ display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:6px; font-size:12px; font-weight:600; color:var(--s); background:var(--s-bg); border:1px solid color-mix(in srgb,var(--s) 40%,transparent); }
+.st .ic{ font-weight:700; }
+.s-success{ --s:var(--sd-st-success); --s-bg:var(--sd-st-success-bg); }
+.s-warning{ --s:var(--sd-st-warning); --s-bg:var(--sd-st-warning-bg); }
+.s-error{ --s:var(--sd-st-error); --s-bg:var(--sd-st-error-bg); }
+.s-info{ --s:var(--sd-st-info); --s-bg:var(--sd-st-info-bg); }
+.s-working{ --s:var(--sd-st-working); --s-bg:var(--sd-st-working-bg); }
+.s-working .ic{ display:inline-block; animation:spin 1.6s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce){ .s-working .ic{ animation:none; } }
+/* task card: identity on the left edge, status in the corner */
+.cards{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
+.card{ background:var(--sd-raised); border:1px solid var(--sd-line); border-left:4px solid var(--a-line); border-radius:6px; padding:10px 12px; min-width:0; }
+.card .top{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:center; }
+.card .t{ font-weight:600; margin:8px 0 4px; }
+.card .m{ font-size:12px; color:var(--sd-muted); }
+/* buttons */
+.btn{ font:inherit; background:transparent; color:var(--sd-text); border:1px solid var(--sd-line); border-radius:6px; padding:7px 12px; cursor:pointer; }
+.btn:hover{ border-color:var(--sd-act-hover); color:var(--sd-act-hover); }
+.btn.primary{ border-color:var(--sd-act-primary); color:var(--sd-id-spitz-text); font-weight:700; }
+.btn.primary:hover{ background:var(--sd-act-primary); color:var(--sd-on-accent); }
+.btn.danger{ border-color:var(--sd-act-danger); color:var(--sd-act-danger); }
+.btn.danger:hover{ background:var(--sd-act-danger); color:var(--sd-on-accent); }
+.btn:disabled{ color:var(--sd-act-disabled); border-color:var(--sd-line-subtle); opacity:.6; cursor:default; }
+.fill{ display:inline-block; padding:6px 12px; border-radius:6px; font-weight:700; font-size:12px; }
+/* void */
+.void{ background:var(--sd-atmo-void); border:1px solid var(--sd-line-subtle); border-radius:8px; padding:16px; }
+.void h3{ margin:0 0 2px; color:var(--sd-id-void-text); font-size:15px; }
+.void .sub{ color:var(--sd-muted); font-size:12px; margin-bottom:12px; }
+.tag{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; border:1px solid var(--sd-line); color:var(--sd-text-2); }
+.idea{ background:rgba(22,24,34,.75); border:1px solid var(--sd-line-subtle); border-radius:6px; padding:8px 10px; margin-top:8px; }
+.idea p{ margin:0 0 6px; }
+.idea:hover{ border-color:var(--sd-id-void-line); }
+table{ border-collapse:collapse; width:100%; font-size:12px; }
+.tw{ overflow-x:auto; }
+th,td{ text-align:left; padding:5px 8px; border-bottom:1px solid var(--sd-line-subtle); white-space:nowrap; }
+th{ color:var(--sd-text-2); font-weight:600; }
+td.pass{ color:var(--sd-st-success); } td.fail{ color:var(--sd-st-error); }
+.ladder{ margin:0; padding-left:20px; color:var(--sd-text-2); font-size:12px; } .ladder b{ color:var(--sd-text); }
+</style>
+</head>
+<body>
+<header>
+  <h1><b>spitz.dev</b> colors · review page</h1>
+  <p>Proposal only. Nothing on the live board uses these yet. Tokens: design/tokens.css · rules: design/README.md</p>
+</header>
+<main>
+
+<section>
+  <h2>hierarchy</h2>
+  <ol class="ladder" start="0">
+    <li><b>neutral structure</b> — almost everything on screen</li>
+    <li><b>identity</b> — who it belongs to: spitz/Kody orange, The Void violet, ChatGPT cyan, Claude crimson</li>
+    <li><b>status</b> — what state it is in, always icon + word</li>
+    <li><b>interaction</b> — what you can do</li>
+    <li><b>auxiliary</b> — charts and art, no meaning</li>
+    <li><b>atmosphere</b> — tonal overlays, no meaning</li>
+  </ol>
+  <p class="note">When rules conflict: accessibility &gt; status meaning &gt; identity &gt; brand &gt; decoration.</p>
+</section>
+
+<section>
+  <h2>0 · neutrals</h2>
+  <div class="grid" id="neutrals"></div>
+</section>
+
+<section>
+  <h2>1 · identity</h2>
+  <p class="note">Each identity has a base (fills, big marks), a -text shade for small text and a -line shade for borders. Claude crimson is too dark for small text or thin borders on these surfaces, so it shows up as a fill or a 4px edge, with #E77791 for text and #D0445F for borders.</p>
+  <div class="grid" id="ids"></div>
+  <div class="row" style="margin-top:10px">
+    <span class="actor a-kody">Kody</span>
+    <span class="actor a-chatgpt">ChatGPT</span>
+    <span class="actor a-claude">Claude</span>
+    <span class="actor a-void">The Void</span>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <span class="fill" style="background:var(--sd-id-spitz);color:var(--sd-on-accent)">spitz fill · 8.24</span>
+    <span class="fill" style="background:var(--sd-id-chatgpt);color:var(--sd-on-accent)">ChatGPT fill · 10.48</span>
+    <span class="fill" style="background:var(--sd-id-claude);color:var(--sd-id-claude-on)">Claude fill · 5.28</span>
+    <span class="fill" style="background:var(--sd-id-void);color:var(--sd-on-accent)">Void fill · 5.34</span>
+  </div>
+  <p class="note" style="margin-top:10px">Reserved, not used yet: yellow (basic AI) and green (advanced AI).</p>
+  <div class="grid" id="reserved"></div>
+</section>
+
+<section>
+  <h2>2 · status</h2>
+  <p class="note">Status colors are softer than identity colors so they never read as an agent. Mint ≠ reserved green, amber ≠ reserved yellow, rose ≠ Claude crimson. The icon and word carry the meaning; the color only helps.</p>
+  <div class="row">
+    <span class="st s-success"><span class="ic" aria-hidden="true">✓</span>done</span>
+    <span class="st s-warning"><span class="ic" aria-hidden="true">!</span>blocked</span>
+    <span class="st s-error"><span class="ic" aria-hidden="true">×</span>failed</span>
+    <span class="st s-info"><span class="ic" aria-hidden="true">i</span>needs review</span>
+    <span class="st s-working"><span class="ic" aria-hidden="true">◌</span>working</span>
+  </div>
+</section>
+
+<section>
+  <h2>actor + status together</h2>
+  <p class="note">Identity on the edge and chip, status in the pill. Neither repaints the other.</p>
+  <div class="cards">
+    <div class="card a-chatgpt">
+      <div class="top"><span class="actor a-chatgpt">ChatGPT</span><span class="st s-success"><span class="ic" aria-hidden="true">✓</span>done</span></div>
+      <div class="t">Draw shopkeeper idle frames</div>
+      <div class="m">rook-and-ruin · 4 frames · 2 min ago</div>
+    </div>
+    <div class="card a-claude">
+      <div class="top"><span class="actor a-claude">Claude</span><span class="st s-error"><span class="ic" aria-hidden="true">×</span>failed</span></div>
+      <div class="t">Build test copy</div>
+      <div class="m">rook-and-ruin · run_tests.sh exited 1 · 5 min ago</div>
+    </div>
+    <div class="card a-kody">
+      <div class="top"><span class="actor a-kody">Kody</span><span class="st s-info"><span class="ic" aria-hidden="true">i</span>needs review</span></div>
+      <div class="t">Approve the PR</div>
+      <div class="m">spitz-dev · waiting on you</div>
+    </div>
+    <div class="card a-claude">
+      <div class="top"><span class="actor a-claude">Claude</span><span class="st s-working"><span class="ic" aria-hidden="true">◌</span>working</span></div>
+      <div class="t">Color system review page</div>
+      <div class="m">spitz-dev · started just now</div>
+    </div>
+    <div class="card a-chatgpt">
+      <div class="top"><span class="actor a-chatgpt">ChatGPT</span><span class="st s-warning"><span class="ic" aria-hidden="true">!</span>blocked</span></div>
+      <div class="t">Push the branch</div>
+      <div class="m">spitz-dev · GitHub returned 403</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · interaction</h2>
+  <p class="note">Primary = orange. Links neutral, orange on hover, cream focus ring (tab to see it). Destructive = rose, never Claude crimson. Disabled = slate and dimmed.</p>
+  <div class="row">
+    <button class="btn primary">New task</button>
+    <button class="btn">Cancel</button>
+    <button class="btn danger">Delete</button>
+    <button class="btn" disabled>Disabled</button>
+    <a href="#top">a normal link</a>
+  </div>
+</section>
+
+<section>
+  <h2>The Void preview</h2>
+  <div class="void">
+    <h3>The Void</h3>
+    <div class="sub">Purple-black atmosphere; the five categories stay neutral tags.</div>
+    <div class="row"><span class="tag">game</span><span class="tag">lesson</span><span class="tag">tool</span><span class="tag">art</span><span class="tag">someday</span></div>
+    <div class="idea"><p>A tower-defense review game where wrong answers spawn the enemies.</p><span class="tag">game</span></div>
+    <div class="idea"><p>Slope as ski runs: steeper run, bigger number.</p><span class="tag">lesson</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · auxiliary</h2>
+  <p class="note">For charts, art and trying out future products. Not assigned to anyone; don't hand one out without a reason.</p>
+  <div class="grid" id="aux"></div>
+</section>
+
+<section>
+  <h2>contrast check (computed live)</h2>
+  <p class="note">WCAG 2 ratio. Text needs 4.5, borders/icons/large text need 3. "fill only" means the color is never used as small text or a thin line.</p>
+  <div class="tw"><table id="ct"><thead><tr><th>token</th><th>use</th><th>bg</th><th>panel</th><th>raised</th><th>overlay</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+</main>
+<script>
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function sw(id, list){ document.getElementById(id).innerHTML = list.map(([n,label]) =>
+  `<div class="sw"><i style="background:var(${n})"></i><div><b>${label}</b>${n}<br>${css(n)}</div></div>`).join(''); }
+sw('neutrals',[['--sd-bg','bg'],['--sd-bg-soft','bg-soft'],['--sd-panel','panel'],['--sd-raised','raised'],['--sd-overlay','overlay'],['--sd-line','line'],['--sd-line-subtle','line-subtle'],['--sd-text','text'],['--sd-text-2','text-2'],['--sd-muted','muted']]);
+sw('ids',[['--sd-id-spitz','spitz / Kody'],['--sd-id-spitz-text','spitz text'],['--sd-id-void','The Void'],['--sd-id-void-text','Void text'],['--sd-id-chatgpt','ChatGPT'],['--sd-id-chatgpt-text','ChatGPT text'],['--sd-id-claude','Claude (fill)'],['--sd-id-claude-text','Claude text'],['--sd-id-claude-line','Claude line']]);
+sw('reserved',[['--sd-id-reserved-basic','reserved: basic AI'],['--sd-id-reserved-advanced','reserved: advanced AI']]);
+sw('aux',[['--sd-aux-sapphire','sapphire'],['--sd-aux-magenta','magenta'],['--sd-aux-periwinkle','periwinkle'],['--sd-aux-ice','ice'],['--sd-aux-lime','lime'],['--sd-aux-copper','copper']]);
+function lum(h){ h=h.replace('#',''); return [0,2,4].map(i=>parseInt(h.substr(i,2),16)/255).map(c=>c<=.03928?c/12.92:((c+.055)/1.055)**2.4).reduce((s,c,i)=>s+c*[.2126,.7152,.0722][i],0); }
+function ratio(a,b){ const x=lum(a), y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05); }
+const rows=[['--sd-text','text',4.5],['--sd-text-2','text',4.5],['--sd-muted','text',4.5],['--sd-id-spitz-text','text',4.5],['--sd-id-void-text','text',4.5],['--sd-id-chatgpt-text','text',4.5],['--sd-id-claude-text','text',4.5],['--sd-id-spitz','line',3],['--sd-id-void','line',3],['--sd-id-chatgpt','line',3],['--sd-id-claude-line','line',3],['--sd-id-claude','fill only',0],['--sd-st-success','text',4.5],['--sd-st-warning','text',4.5],['--sd-st-error','text',4.5],['--sd-st-info','text',4.5],['--sd-st-working','text',4.5],['--sd-act-link','text',4.5],['--sd-act-hover','text',4.5],['--sd-act-focus','line',3]];
+const bgs=['--sd-bg','--sd-panel','--sd-raised','--sd-overlay'];
+document.querySelector('#ct tbody').innerHTML = rows.map(([n,use,min]) => `<tr><td>${n}</td><td>${use}</td>` +
+  bgs.map(b => { const r=ratio(css(n),css(b)); const ok=!min||r>=min; return `<td class="${ok?'pass':'fail'}">${ok?'✓':'×'} ${r.toFixed(2)}</td>`; }).join('') + '</tr>').join('');
+</script>
+</body>
+</html>
