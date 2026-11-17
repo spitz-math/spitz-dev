@@ -39,15 +39,15 @@ header .mark{ width:40px; height:auto; margin-left:auto; }
 .hero{ text-align:center; padding:18px 0 22px; }
 /* black hole (decoration only, aria-hidden): a dark shadow with a thin photon ring and a tilted violet accretion disk
    behind the portal, plus a faint, far-off second one and a sparse starfield. Disk dashes drift slowly; still under reduced motion. */
-.sky{ position:fixed; inset:0; pointer-events:none; z-index:-1; opacity:.55;
-  background-image:radial-gradient(1px 1px at 12% 18%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 82% 12%, #F2F0F8 50%, transparent 51%),
-    radial-gradient(1px 1px at 68% 34%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 22% 62%, #F2F0F8 50%, transparent 51%),
-    radial-gradient(1px 1px at 90% 58%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 6% 86%, #F2F0F8 50%, transparent 51%),
-    radial-gradient(1px 1px at 46% 92%, #CEADFF 50%, transparent 51%), radial-gradient(1.5px 1.5px at 34% 8%, #F2F0F8 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 74% 80%, #CEADFF 50%, transparent 51%), radial-gradient(1px 1px at 56% 48%, #F2F0F8 50%, transparent 51%); }
-.far{ position:fixed; right:-60px; bottom:-40px; width:340px; height:auto; pointer-events:none; z-index:-1; opacity:.45; }
+.sky{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:-1; }
+.neb{ position:fixed; inset:0; pointer-events:none; z-index:-2;
+  background:radial-gradient(38rem 16rem at 18% 30%, rgba(173,92,255,.10), transparent 70%),
+    radial-gradient(30rem 14rem at 86% 22%, rgba(239,117,200,.06), transparent 70%),
+    radial-gradient(44rem 20rem at 70% 78%, rgba(120,70,220,.10), transparent 70%),
+    radial-gradient(26rem 14rem at 10% 88%, rgba(173,92,255,.07), transparent 70%); }
+.far{ position:fixed; right:-70px; bottom:-30px; width:420px; height:auto; pointer-events:none; z-index:-1; opacity:.8; }
 .hero{ position:relative; isolation:isolate; }
-.bh{ position:absolute; left:50%; top:84px; width:560px; max-width:none; height:auto; transform:translate(-50%,-50%); z-index:-1; pointer-events:none; overflow:visible; }
+.bh{ position:absolute; left:50%; top:84px; width:900px; max-width:none; height:auto; transform:translate(-50%,-50%); z-index:-1; pointer-events:none; overflow:visible; }
 .bh .flow{ animation:orbit 40s linear infinite; }
 .bh .flow.f2{ animation-duration:62s; animation-direction:reverse; }
 .hero.gulping .bh .flow{ animation-duration:4s; }
@@ -111,17 +111,17 @@ h1 b{ color:var(--am); }
 .center{ max-width:440px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--am); border-radius:10px; text-align:center; }
 .later{ margin-top:30px; font-size:12px; color:var(--muted); text-align:center; }
 @media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow{ animation:none; } }
-@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:420px; top:70px; } .far{ display:none; } .go .btn.primary{ flex:1; } }
+@media (max-width:520px){ h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:560px; top:70px; } .far{ width:240px; right:-60px; bottom:-20px; opacity:.55; } .go .btn.primary{ flex:1; } }
 </style>
 </head>
 <body>
-<div class="sky" aria-hidden="true"></div>
+<div class="neb" aria-hidden="true"></div><canvas class="sky" id="sky" aria-hidden="true"></canvas>
 <svg class="far" viewBox="-170 -90 340 180" aria-hidden="true" focusable="false"><g transform="rotate(14)">
     <circle r="70" fill="url(#bhHalo2)"/><path d="M-30 0 A30 26 0 0 1 30 0" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".5"/>
-    <circle r="22" fill="#06060B"/><circle r="22.5" fill="none" stroke="#CEADFF" stroke-width="1" opacity=".55"/>
-    <path d="M-110 0 A110 16 0 0 0 110 0" fill="none" stroke="#AD5CFF" stroke-width="1.2" opacity=".55"/>
+    <circle r="22" fill="#06060B"/><circle r="22.5" fill="none" stroke="#E6D4FF" stroke-width="1.6" opacity=".85"/>
+    <path d="M-110 0 A110 16 0 0 0 110 0" fill="none" stroke="#CEADFF" stroke-width="2" opacity=".75"/>
     <path d="M-110 0 A110 16 0 0 1 -24 -14" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".35"/><path d="M24 -14 A110 16 0 0 1 110 0" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".35"/></g>
-    <defs><radialGradient id="bhHalo2"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".18"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient></defs></svg>
+    <defs><radialGradient id="bhHalo2"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".3"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient></defs></svg>
 <div class="wrap" id="app"><p class="sub" style="padding-top:30vh;text-align:center">// opening the void...</p></div>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <script>
@@ -201,30 +201,41 @@ async function start() {
 
 function shell() {
   app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><img class="mark" src="burger_void_192.png" alt="" width="40" height="32"><span class="sub" id="mode"></span></header>
-    <section class="hero" id="hero"><svg class="bh" viewBox="-280 -140 560 280" aria-hidden="true" focusable="false">
+    <section class="hero" id="hero"><svg class="bh" viewBox="-450 -225 900 450" aria-hidden="true" focusable="false">
         <defs>
-          <radialGradient id="bhHalo"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".22"/><stop offset=".45" stop-color="#AD5CFF" stop-opacity=".07"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient>
-          <linearGradient id="bhDisk" x1="-1" x2="1" y1="0" y2="0" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#CEADFF" stop-opacity=".0"/><stop offset=".22" stop-color="#CEADFF" stop-opacity=".9"/><stop offset=".55" stop-color="#AD5CFF" stop-opacity=".55"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></linearGradient>
-          <linearGradient id="bhDiskL" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#AD5CFF" stop-opacity="0"/><stop offset=".25" stop-color="#CEADFF" stop-opacity=".85"/><stop offset=".7" stop-color="#AD5CFF" stop-opacity=".45"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></linearGradient>
+          <radialGradient id="bhHalo"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".38"/><stop offset=".3" stop-color="#AD5CFF" stop-opacity=".16"/><stop offset=".6" stop-color="#7A3FE0" stop-opacity=".06"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient>
+          <linearGradient id="bhDiskL" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#AD5CFF" stop-opacity="0"/><stop offset=".2" stop-color="#E6D4FF" stop-opacity="1"/><stop offset=".45" stop-color="#CEADFF" stop-opacity=".9"/><stop offset=".75" stop-color="#AD5CFF" stop-opacity=".6"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></linearGradient>
+          <filter id="bhGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="bhSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
         </defs>
-        <circle r="140" fill="url(#bhHalo)"/>
+        <circle r="225" fill="url(#bhHalo)"/>
         <g transform="rotate(-9)">
+          <!-- glow under the whole disk -->
+          <ellipse rx="300" ry="46" fill="none" stroke="#AD5CFF" stroke-width="22" opacity=".18" filter="url(#bhSoft)"/>
           <!-- back half of the disk, bent up over the shadow by the lensing -->
-          <path d="M-96 0 A96 78 0 0 1 96 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2" opacity=".55"/>
-          <path d="M-112 0 A112 92 0 0 1 112 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1" opacity=".3"/>
-          <!-- far half of the flat disk -->
-          <path d="M-250 0 A250 40 0 0 1 250 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1.2" opacity=".5"/>
-          <path class="flow f2" d="M-200 0 A200 30 0 0 1 200 0" fill="none" stroke="#CEADFF" stroke-width="1" stroke-dasharray="2 14" opacity=".45"/>
+          <g filter="url(#bhGlow)">
+            <path d="M-100 0 A100 84 0 0 1 100 0" fill="none" stroke="url(#bhDiskL)" stroke-width="5" opacity=".85"/>
+            <path d="M-116 0 A116 100 0 0 1 116 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2" opacity=".55"/>
+            <path d="M-134 0 A134 118 0 0 1 134 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1" opacity=".3"/>
+            <path d="M-330 0 A330 50 0 0 1 330 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2" opacity=".6"/>
+            <path d="M-260 0 A260 38 0 0 1 260 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1.4" opacity=".5"/>
+          </g>
+          <path class="flow f2" d="M-295 0 A295 44 0 0 1 295 0" fill="none" stroke="#E6D4FF" stroke-width="1.6" stroke-dasharray="2 12" opacity=".6"/>
         </g>
         <!-- the shadow and its photon ring -->
-        <circle r="74" fill="#06060B"/>
-        <circle r="75" fill="none" stroke="#CEADFF" stroke-width="1.4" opacity=".7"/>
-        <circle r="79" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".3"/>
+        <circle r="74" fill="#05050A"/>
+        <g filter="url(#bhGlow)"><circle r="75.5" fill="none" stroke="#E6D4FF" stroke-width="2.2" opacity=".9"/></g>
+        <circle r="81" fill="none" stroke="#AD5CFF" stroke-width="1.2" opacity=".45"/>
+        <circle r="88" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".2"/>
         <g transform="rotate(-9)">
           <!-- near half of the disk, passing in front of the shadow -->
-          <path d="M-250 0 A250 40 0 0 0 250 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2.2" opacity=".75"/>
-          <path d="M-170 0 A170 24 0 0 0 170 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1.2" opacity=".45"/>
-          <path class="flow" d="M-220 0 A220 34 0 0 0 220 0" fill="none" stroke="#CEADFF" stroke-width="1.2" stroke-dasharray="3 18" opacity=".55"/>
+          <g filter="url(#bhGlow)">
+            <path d="M-330 0 A330 50 0 0 0 330 0" fill="none" stroke="url(#bhDiskL)" stroke-width="4" opacity=".9"/>
+            <path d="M-220 0 A220 30 0 0 0 220 0" fill="none" stroke="url(#bhDiskL)" stroke-width="2" opacity=".6"/>
+            <path d="M-380 0 A380 60 0 0 0 380 0" fill="none" stroke="url(#bhDiskL)" stroke-width="1" opacity=".35"/>
+          </g>
+          <path class="flow" d="M-280 0 A280 41 0 0 0 280 0" fill="none" stroke="#E6D4FF" stroke-width="1.6" stroke-dasharray="3 14" opacity=".7"/>
+          <path class="flow f2" d="M-360 0 A360 56 0 0 0 360 0" fill="none" stroke="#CEADFF" stroke-width="1" stroke-dasharray="1 20" opacity=".5"/>
         </g>
       </svg><div class="portal" id="portal" aria-hidden="true"><div class="ring"></div><img src="portal.png" alt="" width="512" height="512"></div>
       <h1>the <b>void</b></h1><p class="tag">Get it out of your head. Into the void.</p></section>
@@ -331,6 +342,47 @@ function undoToast(x) {
   }
   toastTimer = setTimeout(() => { t.hidden = true }, 8000)
 }
+</script>
+<script>
+// Starfield (decoration): steady stars everywhere, plus a slow trickle of dust spiralling into the black hole behind the portal.
+// Stars never blink. Reduced motion: drawn once, nothing moves.
+;(() => {
+  const c = document.getElementById('sky'), x = c.getContext('2d'), still = matchMedia('(prefers-reduced-motion: reduce)').matches
+  let W, H, dpr, stars = [], dust = []
+  const rnd = (a, b) => a + Math.random() * (b - a)
+  function size() {
+    dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight
+    c.width = W * dpr; c.height = H * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0)
+    const n = Math.round(W * H / 6000)
+    stars = Array.from({ length: n }, () => ({ x: rnd(0, W), y: rnd(0, H), r: Math.random() < .1 ? rnd(1, 1.6) : rnd(.4, .9), a: rnd(.25, .8), v: Math.random() < .5 }))
+    if (still) draw(0)
+  }
+  function hole() { const p = document.getElementById('portal'); if (!p) return null; const r = p.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } }
+  function spawn(h) { const ang = rnd(0, Math.PI * 2), d = rnd(240, Math.max(W, H) * .7); return { ang, d, h, sp: rnd(.05, .12), a: 0, r: rnd(.6, 1.4), v: Math.random() < .6 } }
+  let last = 0
+  function draw(t) {
+    const dt = Math.min(.05, (t - last) / 1000 || 0); last = t
+    x.clearRect(0, 0, W, H)
+    for (const s of stars) { x.globalAlpha = s.a; x.fillStyle = s.v ? '#CEADFF' : '#F2F0F8'; x.fillRect(s.x, s.y, s.r, s.r) }
+    const h = hole()
+    if (h && !still) {
+      const fast = document.getElementById('hero')?.classList.contains('gulping') ? 4 : 1
+      while (dust.length < 70) dust.push(spawn(h))
+      for (const p of dust) {
+        // closer = faster, like an orbit; the path is squashed to match the tilted disk
+        const k = 1 + 160 / p.d
+        p.ang += p.sp * k * k * dt * fast; p.d -= 7 * k * k * dt * fast; p.a = Math.min(1, p.a + dt * .4)
+        const px = h.x + Math.cos(p.ang) * p.d, py = h.y + Math.sin(p.ang) * p.d * .32
+        const fade = p.d < 140 ? Math.max(0, (p.d - 76) / 64) : 1
+        x.globalAlpha = p.a * fade * .9; x.fillStyle = p.v ? '#CEADFF' : '#E6D4FF'; x.fillRect(px, py, p.r, p.r)
+      }
+      dust = dust.filter(p => p.d > 78)
+    }
+    x.globalAlpha = 1
+    if (!still) requestAnimationFrame(draw)
+  }
+  addEventListener('resize', size); size(); if (!still) requestAnimationFrame(draw)
+})()
 </script>
 </body>
 </html>
