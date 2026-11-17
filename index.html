@@ -223,6 +223,19 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .ev.bad .d{ color:var(--bad); opacity:1; }
 .tag::before{ content:'['; } .tag::after{ content:']'; }
 .thumbs{ display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.ti{ display:flex; flex-direction:column; gap:6px; max-width:320px; }
+.rv{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:12px; }
+.rv .btn{ padding:4px 9px; font-size:12px; }
+.badge{ border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.badge.ready, .badge.pass{ color:var(--good); border-color:var(--good); }
+.badge.approved{ color:var(--spitz-text); border-color:var(--spitz); }
+.badge.failed, .badge.fail{ color:var(--bad); border-color:var(--bad); }
+.badge.ind{ color:var(--warn); border-color:var(--warn); }
+.rdy{ margin-top:8px; font-size:13px; border-left:3px solid var(--good); padding:4px 0 4px 10px; }
+.rdy.no{ border-left-color:var(--warn); }
+.rdy b{ color:var(--good); } .rdy.no b{ color:var(--warn); }
+.rdy ul{ margin:4px 0 0 18px; padding:0; }
+.btn:disabled{ opacity:.4; cursor:not-allowed; }
 .thumb{ background:repeating-conic-gradient(#1D202E 0 25%,#161822 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:6px; max-width:100%; text-decoration:none; }
 .thumb:hover{ border-color:var(--orange); }
 .thumb img{ display:block; max-width:min(320px,100%); max-height:220px; image-rendering:pixelated; }
@@ -278,14 +291,14 @@ const STUDIO = {
 // the database speaks (IDV). chatgpt_chat and claude_thread only exist after the migration.
 const WHO = { spitz:'You', chatgpt_chat:'your ChatGPT chat', openai_worker:'ChatGPT worker', claude:'Claude worker', claude_thread:'Claude thread' }
 const GROUP = { spitz:'spitz', chatgpt_chat:'chatgpt', openai_worker:'chatgpt', claude:'claude', claude_thread:'claude' } // board column + colour
-let IDV = 1
+let IDV = 1, TT = false // TT: typed tasks + asset status (migration 20261118010000)
 const nid = v => v == null ? v : ({ kody:'spitz', chatgpt:'openai_worker' }[v] || v) // old 'chatgpt' turn did start the API worker
 const oid = v => v == null || IDV >= 2 ? v : ({ spitz:'kody', openai_worker:'chatgpt' }[v] || v)
 const norm = r => { if (r) for (const k of ['turn', 'created_by', 'author', 'set_turn', 'actor']) if (k in r) r[k] = nid(r[k]); return r }
 const grp = v => GROUP[v] || 'claude'
 // colour per identity: your ChatGPT chat is cyan, the automatic ChatGPT worker is green (both sit in the ChatGPT column)
 const CLS = v => nid(v) === 'openai_worker' ? 'gptw' : grp(nid(v))
-async function detectScheme() { const r = await sb.rpc('studio_schema'); IDV = !r.error && r.data && r.data.identities >= 2 ? 2 : 1 }
+async function detectScheme() { const r = await sb.rpc('studio_schema'); IDV = !r.error && r.data && r.data.identities >= 2 ? 2 : 1; TT = !r.error && !!r.data && r.data.typed_tasks >= 1 }
 const app = document.getElementById('app')
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
 const linkify = s => esc(s).replace(/https:\/\/[^\s<]+[^\s<.,;:!?)'"]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`)
@@ -737,6 +750,18 @@ async function renderTask(id, quiet) {
     sb.from('studio_worker_runs').select('id,status,detail,created_at,finished_at,step,heartbeat_at,task_version,done_assets,pics:plan->images').eq('task_id', id).order('id', { ascending: false }).limit(1),
     sb.rpc('studio_task_activity', { p_task_id: id })])
   if (openId !== id) return
+  // Phase 2/3: is the task ready to hand on, and where each picture stands (draft / failed / approved / ready)
+  let rd = null; const st = {}, val = {}
+  if (TT) {
+    const ids = assets.map(a => a.id)
+    const [q3, q4, q5] = await Promise.all([sb.rpc('studio_task_readiness', { p_task_id: id }),
+      ids.length ? sb.from('studio_assets').select('id,status,sha256').in('id', ids) : { data: [] },
+      ids.length ? sb.from('studio_validations').select('id,asset_id,sha256,result').in('asset_id', ids).order('id', { ascending: false }) : { data: [] }])
+    if (openId !== id) return
+    rd = !q3.error && q3.data
+    ;(q4.data || []).forEach(a => { st[a.id] = a })
+    ;(q5.data || []).forEach(v => { if (st[v.asset_id] && v.sha256 === st[v.asset_id].sha256 && !val[v.asset_id]) val[v.asset_id] = v.result })
+  }
   const r0 = (runs || [])[0], events = ((act && !act.error && act.data) || []).map(norm)
   const run = r0 && { id: r0.id, status: r0.status, detail: r0.detail, at: r0.created_at, finished: r0.finished_at, step: r0.step, heartbeat: r0.heartbeat_at, version: r0.task_version, pictures: (r0.pics || []).length, saved: (r0.done_assets || []).length }
   const gw = events.find(e => e.actor === 'openai_worker' && e.kind === 'wake')
@@ -748,7 +773,15 @@ async function renderTask(id, quiet) {
   const gptTurn = t.turn === 'openai_worker' && t.status === 'open'
   const byId = Object.fromEntries(assets.map(a => [a.id, a]))
   const shown = new Set()
-  const thumb = a => { shown.add(a.id); return `<a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>` }
+  const VAL = { PASS: ['pass', 'check passed'], FAIL: ['fail', 'check failed'], INDETERMINATE: ['ind', "check can't tell"], 'SPEC ERROR': ['fail', 'check spec error'] }
+  const review = a => {
+    const s = st[a.id]; if (!TT || !s) return ''
+    const v = val[a.id], vb = v ? `<span class="badge ${VAL[v][0]}" title="Newest automatic check of this exact file">${VAL[v][1]}</span>` : '<span class="badge" title="No automatic check of this file yet">not checked</span>'
+    // approving happens in the Claude thread that puts the art in the game (Kody's rule), so this is status only
+    const tip = s.status === 'draft' ? '<span class="sub">approve it in the Claude thread</span>' : ''
+    return `<div class="rv"><span class="badge ${s.status}">${s.status}</span>${vb}${tip}</div>`
+  }
+  const thumb = a => { shown.add(a.id); return `<div class="ti"><a class="thumb" href="${urls[a.id] || '#'}" target="_blank" rel="noopener" title="${esc(a.note || '')}">${urls[a.id] ? `<img src="${urls[a.id]}" alt="${esc(a.file_name)}" loading="lazy">` : ''}<div class="cap">${esc(a.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${a.width}x${a.height}</div></a>${review(a)}</div>` }
   const refsHtml = refs => {
     const imgs = refs.filter(r => r.type === 'asset' && byId[r.id]).map(r => thumb(byId[r.id])).join('')
     const links = refs.filter(r => r.type !== 'asset').map(r => `<div><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.type === 'pr' ? 'Pull request ' + (r.url.match(/\/pull\/(\d+)/) || [,''])[1] : r.url)}</a></div>`).join('')
@@ -768,9 +801,19 @@ async function renderTask(id, quiet) {
   const timeline = items.map(i => i.html).join('')
   const briefRefs = refsHtml(t.refs)
   const loose = assets.filter(a => !shown.has(a.id))
+  const ROLE = { source: 'the picture to start from', style: 'style', size: 'size', layout: 'layout', other: 'other' }
+  const JOB = { new: 'new art', refine: 'refine', pixel_edit: 'pixel edit', composite: 'composite', text: 'text' }
+  const reqN = rd ? (rd.required_refs || []).length : 0
+  const noWorker = !!rd && (['refine', 'pixel_edit', 'composite'].includes(rd.job_type) || reqN > 0)
+  const blockHand = !!rd && !rd.ready && t.status !== 'done'
+  const readyHtml = !rd || (!rd.job_type && !reqN && rd.ready) ? ''
+    : `<div class="rdy ${rd.ready ? '' : 'no'}">${rd.job_type ? `Job: ${esc(JOB[rd.job_type] || rd.job_type)}${reqN ? ` · ${reqN} required reference${reqN > 1 ? 's' : ''} (${esc([...new Set(rd.required_refs.map(r => ROLE[r.role] || r.role))].join(', '))})` : ''} · ` : ''}`
+      + (rd.ready ? '<b>Ready to hand on</b>' : `<b>Not ready to hand on.</b> What's missing:<ul>${(rd.missing || []).map(m => `<li>${esc(m)}</li>`).join('')}</ul><div class="sub">A Claude thread or your ChatGPT chat can add these while it's your turn.</div>`)
+      + (noWorker ? '<div class="sub">The ChatGPT worker can\'t take this one: it can\'t see reference pictures. Use your ChatGPT chat or Claude.</div>' : '') + '</div>'
+  const dis = a => (blockHand && ['openai_worker', 'chatgpt_chat', 'claude'].includes(a)) || (noWorker && a === 'openai_worker') ? ' disabled title="Not ready to hand on yet: see what\'s missing above"' : ''
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn] || t.turn}${t.turn === 'spitz' ? 'r' : "'s"} turn` : 'Unassigned'
   // background refresh: leave the drawer alone if nothing changed; if something did, keep where you were reading and typing
-  const sig = [t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
+  const sig = [JSON.stringify(rd), JSON.stringify(st), JSON.stringify(val), t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
   if (quiet && d.dataset.sig === sig && d.dataset.task === id) return
   const oldBody = d.querySelector('.dbody'), oldTa = d.querySelector('#body')
   const keep = quiet && oldBody ? { top: oldBody.scrollTop, atTop: oldBody.scrollTop < 30, brief: d.querySelector('details.brief')?.open,
@@ -778,13 +821,13 @@ async function renderTask(id, quiet) {
   d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
-      <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}</div><button class="btn" id="x">Close</button></div>
+      <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}${readyHtml}</div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
     <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
       <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. The worker buttons start ChatGPT or Claude at once; "my ChatGPT chat" waits for you to open it.</div>
-      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gptw" data-a="openai_worker">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude">Send + Claude worker</button>
+      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gptw" data-a="openai_worker"${dis('openai_worker')}>Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat"${dis('chatgpt_chat') || ' title="Nothing starts by itself"'}>Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude"${dis('claude')}>Send + Claude worker</button>
       ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
   d.querySelector('#x').onclick = closeTask
   const rt = d.querySelector('#retry'); if (rt) rt.onclick = () => retryRun(rt, d.querySelector('#rs'))
