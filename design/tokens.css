@@ -27,8 +27,8 @@
   --sd-id-spitz:#FF892E;      --sd-id-spitz-text:#FFAC6F;   --sd-id-spitz-line:#FF892E;     /* 8.24 / 10.57; on overlay 5.99 */
   --sd-id-void:#AD5CFF;       --sd-id-void-text:#CEADFF;    --sd-id-void-line:#AD5CFF;      /* 5.34 / 10.26; on overlay 3.88 */
   --sd-id-chatgpt:#19CFF5;    --sd-id-chatgpt-text:#9BEAFF; --sd-id-chatgpt-line:#19CFF5;   /* 10.48 / 14.49 */
-  --sd-id-claude:#B82E49;     --sd-id-claude-text:#E77791;  --sd-id-claude-line:#D0445F;    /* 3.27 (fill only) / 6.91 / line 4.34, 3.16 on overlay */
-  --sd-id-claude-on:#F2F0F8;  /* text on a crimson fill: 5.28 */
+  --sd-id-claude:#C81E1E;     --sd-id-claude-text:#FF4F4F;  --sd-id-claude-line:#EF3B36;    /* true red (Kody 2026-11-16: less coral/pink). 3.40 (fill only) / 6.02 / line 4.97, 3.61 on overlay */
+  --sd-id-claude-on:#F2F0F8;  /* text on a red fill: 5.08 */
   --sd-id-kody:var(--sd-id-spitz); --sd-id-kody-text:var(--sd-id-spitz-text); --sd-id-kody-line:var(--sd-id-spitz-line);
   /* reserved for future agents — defined so nothing else takes these hues; not used in the UI yet */
   --sd-id-reserved-basic:#F4C84D;     /* yellow, basic AI */
@@ -51,7 +51,7 @@
   --sd-act-link:#D4DCF4;                /* default link 14.25 */
   --sd-act-hover:#FFAD74;               /* hover 10.66 */
   --sd-act-focus:#FFE2AA;               /* focus ring 15.52 */
-  --sd-act-danger:var(--sd-st-error);   /* destructive = rose, never Claude crimson */
+  --sd-act-danger:var(--sd-st-error);   /* destructive = rose, never Claude red */
   --sd-act-disabled:#A5A8B5;            /* slate; also dim with opacity, not hue */
 
   /* 4 · auxiliary — charts, artwork, exploration. Not assigned to anyone. */

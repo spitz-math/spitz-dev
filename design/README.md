@@ -11,7 +11,7 @@ Files:
 | level | prefix | job | rule |
 |---|---|---|---|
 | 0 | `--sd-bg`, `--sd-panel`, `--sd-text` … | neutral structure | most of every screen |
-| 1 | `--sd-id-*` | identity: who/what it belongs to | spitz/Kody orange, The Void violet, ChatGPT cyan, Claude crimson |
+| 1 | `--sd-id-*` | identity: who/what it belongs to | spitz/Kody orange, The Void violet, ChatGPT cyan, Claude red |
 | 2 | `--sd-st-*` | status: what state it is in | always icon + word, never color alone |
 | 3 | `--sd-act-*` | interaction: what you can do | primary orange, danger rose |
 | 4 | `--sd-aux-*` | charts, art, exploration | carries no meaning, not assigned to anyone |
@@ -31,11 +31,11 @@ Each identity has up to three shades:
 | spitz.dev / Kody | `#FF892E` | `#FFAC6F` | `#FF892E` |
 | The Void | `#AD5CFF` | `#CEADFF` | `#AD5CFF` |
 | ChatGPT | `#19CFF5` | `#9BEAFF` | `#19CFF5` |
-| Claude | `#B82E49` | `#E77791` | `#D0445F` |
+| Claude | `#C81E1E` | `#FF4F4F` | `#EF3B36` |
 | reserved: basic AI | `#F4C84D` | — | — |
 | reserved: advanced AI | `#20D99C` | — | — |
 
-**Claude crimson.** `#B82E49` is 3.27:1 on bg and 2.38:1 on overlay, so it fails as small text and as a thin border. It is used only as a fill (with `#F2F0F8` text on it, 5.28:1) or a thick edge (the 4px card edge). Small text uses `#E77791` (6.91:1). Borders use a new `#D0445F` (4.34 on bg, 3.16 on overlay), added because the base crimson fails 3:1 for thin lines on every panel shade. Tradeoff: the chip and the card border read a little brighter and pinker than the "deep crimson" in the swatch. The deep shade still shows on fills and edges.
+**Claude red.** A true red, not coral or pink (Kody, 2026-11-16). The base `#C81E1E` is 3.40:1 on bg, so it is used only as a fill (with `#F2F0F8` text on it, 5.08:1) or a thick edge. Small text uses `#FF4F4F` (6.02:1). Borders use `#EF3B36` (4.97 on bg, 3.61 on overlay). It stays clearly apart from the error rose `#FF8293`, which is pink and always comes with × and a word.
 
 ## Status
 
@@ -47,11 +47,11 @@ Each identity has up to three shades:
 | info / needs review | periwinkle `#9EB8EE` | i |
 | working / neutral | slate `#A5A8B5` | ◌ (spins unless reduced motion) |
 
-Status hues are softer and lighter than identity hues so they don't read as an agent. Mint is not the reserved green, amber is not the reserved yellow, rose is not Claude crimson. Tradeoff: on a Claude card that failed, the crimson edge and the rose pill sit next to each other and are in the same red family. The × and the word "failed" carry the meaning; the edge shows only who the card belongs to. The same goes for a ChatGPT card that is done: cyan edge, mint "done" pill.
+Status hues are softer and lighter than identity hues so they don't read as an agent. Mint is not the reserved green, amber is not the reserved yellow, rose is not Claude red. Tradeoff: on a Claude card that failed, the red edge and the rose pill sit next to each other and are in the same red family. The × and the word "failed" carry the meaning; the edge shows only who the card belongs to. The same goes for a ChatGPT card that is done: cyan edge, mint "done" pill.
 
 ## Interaction
 
-Primary action orange; links `#D4DCF4`; hover `#FFAD74`; focus ring `#FFE2AA` (2px); destructive = error rose; disabled = slate + dimmed. Claude crimson is never a "danger" color.
+Primary action orange; links `#D4DCF4`; hover `#FFAD74`; focus ring `#FFE2AA` (2px); destructive = error rose; disabled = slate + dimmed. Claude red is never a "danger" color.
 
 ## Products
 
@@ -72,7 +72,7 @@ Current live tokens, and what each would map to:
 | `--orange` `#fc7301` | | `--sd-id-spitz` `#FF892E` | lighter. Text on orange fills stays dark |
 | `--orange2`, `--link` `#ff9a3d` | | `--sd-act-hover` / `--sd-act-link` | links become neutral and turn orange on hover |
 | `--chatgpt` `#20e6ae` (jade) | | `--sd-id-chatgpt` cyan | |
-| `--claude` `#b45aff` (purple) | | crimson set | text → `-text`, borders → `-line` |
+| `--claude` `#b45aff` (purple) | | red set | text → `-text`, borders → `-line` |
 | `--bad` `#ff5a5f` | | `--sd-st-error` | |
 | `--done` `#6f6e6a` | | `--sd-st-working` / `--sd-muted` | |
 
