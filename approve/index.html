@@ -288,17 +288,25 @@ function needBanner(task) {
 
 // No id: everything waiting for a decision, newest first, plus tasks parked on the ChatGPT chat.
 async function queue() {
-  const [held, park, recent] = await Promise.all([
-    sb.from('studio_assets').select('id,original_name,file_name,width,height,made_by,created_at,path,task_id').eq('status', 'held').order('created_at', { ascending: false }).limit(60),
+  const COLS = 'id,original_name,file_name,width,height,made_by,created_at,path,task_id'
+  const heldQ = () => sb.from('studio_assets').select(COLS).eq('status', 'held').order('created_at', { ascending: false })
+  // pictures made before approvals (legacy_status set) are listed apart, so new work stays on top
+  let [held, old, park, recent] = await Promise.all([
+    heldQ().is('legacy_status', null).limit(60),
+    sb.from('studio_assets').select('id,original_name,file_name,width,height,task_id,legacy_status').eq('status', 'held').not('legacy_status', 'is', null).order('created_at', { ascending: false }).limit(300),
     sb.from('studio_tasks').select('id,title,project,updated_at').eq('status', 'open').eq('turn', 'chatgpt_chat').order('updated_at', { ascending: false }).limit(20),
     sb.from('studio_approvals').select('asset_id,verdict,at,note,method').not('user_id', 'is', null).order('id', { ascending: false }).limit(10)])
+  if (held.error) { held = await heldQ().limit(60); old = { data: [] } } // before the old-drafts migration: no legacy_status column yet
   if (held.error) throw held.error
-  const list = held.data || []
+  const list = held.data || [], olds = (old && old.data) || []
   const urls = {}
   if (list.length) { const s = await sb.storage.from(STUDIO.bucket).createSignedUrls(list.map(x => x.path), 600); (s.data || []).forEach((u, i) => { urls[list[i].id] = u.signedUrl }) }
   app.innerHTML = `<h1>${list.length ? `${list.length} picture${list.length > 1 ? 's' : ''} waiting for you` : 'Nothing waiting for you'}</h1>
     <p class="sub">Nothing here can be used until you decide. Tap one to see the exact file.</p>
     ${list.map(x => `<a class="q" href="?id=${x.id}">${urls[x.id] ? `<img src="${urls[x.id]}" alt="">` : ''}<div><div>${esc(x.original_name || x.file_name)}</div><div class="sub">${x.width}x${x.height} · by ${esc(WHO[x.made_by] || x.made_by || 'unknown')} · ${ago(x.created_at)}</div></div></a>`).join('')}
+    ${olds.length ? `<details class="old"><summary><h2 style="display:inline">OLDER PICTURES (${olds.length})</h2></summary>
+      <p class="sub">Made before approvals existed. Nobody can use them until you approve them, so only approve the ones a game needs. You can leave the rest.</p>
+      <ul class="history sub">${olds.map(x => `<li><a href="?id=${x.id}">${esc(x.original_name || x.file_name)}</a> · ${x.width}x${x.height}${x.legacy_status === 'failed' ? ' · its check had failed' : ''}</li>`).join('')}</ul></details>` : ''}
     ${(park.data || []).length ? `<h2>NEEDS YOU IN CHATGPT</h2>${park.data.map(t => `<div class="need"><b>${esc(t.title)}</b> (${esc(t.project)}) is waiting on your ChatGPT chat, which never starts by itself. Open ChatGPT and ask it to continue this task.</div>`).join('')}` : ''}
     <h2>YOUR LAST DECISIONS</h2><ul class="history sub">${(recent.data || []).map(h => `<li><a href="?id=${h.asset_id}">${esc(h.verdict)}</a> · ${ago(h.at)}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>`
 }
