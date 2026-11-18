@@ -61,16 +61,16 @@ async function run(phase) {
   await page.waitForTimeout(200)
   const r = { errors }
   r.ready = await page.$eval('#drawer', d => (d.querySelector('.rdy') || {}).innerText || '')
-  r.disabled = await page.$$eval('.compose .btn', bs => bs.filter(b => b.disabled).map(b => b.dataset.a))
+  r.disabled = await page.$$eval('#destination option:disabled', opts => opts.map(o => o.value))
   r.badges = await page.$$eval('.ti', ts => ts.map(t => [...t.querySelectorAll('.badge')].map(b => b.textContent).join('/')))
   r.buttons = await page.$$eval('.ti .rv .btn', bs => bs.length)
-  r.tips = await page.$$eval('.ti', ts => ts.map(t => (t.querySelector('.rv .sub') || {}).textContent || ''))
+  r.tips = await page.$$eval('.ti', ts => ts.map(t => (t.querySelector('.rv .rvl') || {}).textContent || ''))
   if (process.env.SHOT && phase === 2) await page.screenshot({ path: process.env.SHOT })
   if (phase === 2) {
     // a plain task shows no ready box and nothing disabled
     await page.click('#drawer #x'); await page.click('.card[data-id="t2"]'); await page.waitForSelector('.compose .btn'); await page.waitForTimeout(200)
     r.plainReady = await page.$$eval('.rdy', x => x.length)
-    r.plainDisabled = await page.$$eval('.compose .btn', bs => bs.filter(b => b.disabled).length)
+    r.plainDisabled = await page.$$eval('#destination option:disabled', opts => opts.length)
   }
   r.calls = await page.evaluate(() => window.__calls.map(c => c.fn))
   await browser.close()
@@ -93,7 +93,7 @@ async function run(phase) {
   assert.deepStrictEqual(p2.disabled.sort(), ['chatgpt_chat', 'claude', 'openai_worker'], 'handoffs disabled, note still allowed')
   assert.deepStrictEqual(p2.badges, ['draft/check failed', 'approved/check passed', 'ready/check passed'])
   assert.strictEqual(p2.buttons, 0, 'no approve buttons: Kody approves in the Claude thread')
-  assert.deepStrictEqual(p2.tips, ['approve it in the Claude thread', '', ''])
+  assert.deepStrictEqual(p2.tips, ['review & approve', '', ''])
   assert(!p2.calls.includes('studio_review_asset') && !p2.calls.includes('studio_mark_ready'))
   assert.strictEqual(p2.plainReady, 0); assert.strictEqual(p2.plainDisabled, 0)
   console.log('ok Phase 2 database: ready check, picture status (approval happens in the Claude thread)')
