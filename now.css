@@ -43,7 +43,7 @@
 }
 @media(max-width:560px){
  .nowv .entry{grid-template-columns:1fr;gap:10px;padding:14px}
- .nowv .entry .decision{justify-self:start}.nowv .date{font-size:11px}
+ .nowv .entry .decision{justify-self:start}.nowv .date{font-size:12px}
  .nowv .sectiongrid{margin-top:22px}.nowtools .make{padding:9px 10px}
 }
 .nowv .entrybody{display:flex;align-items:center;gap:16px;min-width:0}.nowv .entrybody>div{min-width:0}
@@ -74,3 +74,16 @@
 .compose select{min-height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:6px;font:inherit;color:var(--ink)}
 .compose #send-action{min-height:38px}.status-action{margin-left:6px}.chat-links summary{cursor:pointer;color:var(--muted);font-size:14px}
 @media(max-width:560px){.compose{padding:8px 12px}.compose textarea{min-height:54px}.compose .row{gap:6px}.compose label{flex-wrap:wrap;gap:4px}.compose #send-action{flex:auto}}
+
+/* Needs you: a task with waiting pictures shows once, with both actions */
+.nowv .entryacts{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.nowv .entryacts .decision{text-align:center}
+@media(max-width:560px){.nowv .entryacts{flex-direction:row;flex-wrap:wrap}}
+
+/* Task drawer: reply box follows the content (no empty band); pictures first; brief preview */
+.drawer .dbody{flex:0 1 auto}
+.drawer .compose{margin-bottom:auto}
+.picstrip{margin:0 0 16px}.picstrip .h{font-size:12px;color:var(--muted);margin-bottom:2px}
+.brief .briefpeek{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--ink);opacity:.8;margin-top:6px;white-space:normal;font-size:13px;line-height:1.45}
+.brief[open] .briefpeek{display:none}
+.dhead .sub{font-size:13px}
