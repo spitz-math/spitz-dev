@@ -256,6 +256,28 @@ const pref = (k, v) => { try { if (v === undefined) return localStorage.getItem(
 
 let sb, tasks = [], project = pref('project') || 'all', openId = null, busy = false
 
+const drafts = new Map()
+let draftUser = null
+function draftText(id) {
+  if (drafts.has(id)) return drafts.get(id)
+  try { return draftUser && sessionStorage.getItem('studio-draft:' + draftUser + ':' + id) || '' } catch { return '' }
+}
+function saveDraft(id, value) {
+  drafts.set(id,value)
+  if (!draftUser) return
+  const name = 'studio-draft:' + draftUser + ':' + id
+  try { if (value) sessionStorage.setItem(name,value); else sessionStorage.removeItem(name) } catch {}
+}
+const destinations = new Map()
+const sendActions = {
+  note: ['Task note', 'Save note', ''],
+  chatgpt_chat: ['My ChatGPT chat', 'Hand off to my chat', 'gpt'],
+  openai_worker: ['ChatGPT worker', 'Start ChatGPT worker', 'gptw'],
+  claude: ['Claude worker', 'Start Claude worker', 'cl']
+}
+let drawerRequest = 0
+const drawerRoute = () => /^#(task|idea)=([a-z0-9-]{1,80})$/i.exec(location.hash)
+
 if (!window.supabase) app.innerHTML = '<div class="center"><h1>spitz.dev</h1><p class="err">Could not load sign-in. Check your connection and reload.</p></div>'
 else start()
 
@@ -263,7 +285,8 @@ async function start() {
   sb = window.supabase.createClient(STUDIO.supabaseUrl, STUDIO.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } })
   const { data: { session } } = await sb.auth.getSession()
   if (!session) return signIn()
-  await detectScheme(); shell(); await load()
+  draftUser = session.user.id
+  await detectScheme(); shell(); await load(); await openRoute()
   setInterval(() => { if (!document.hidden && !busy) load() }, 20000)
   // while ChatGPT is mid-step, refresh the open view every 5 seconds so progress shows as it happens
   setInterval(() => { if (document.hidden || busy || !(nowLive || drawerLive)) return; if (openId) renderTask(openId, true); if (view === 'now') renderBoard() }, 5000)
@@ -320,7 +343,7 @@ const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
 const boardColumns = {spitz:'Your turn', chatgpt:'ChatGPT', claude:'Claude', done:'Done'}
 function dashboardView() {
   if (location.hash === '#now') return 'now'
-  if (location.hash === '#board' || location.hash === '#history') return 'board'
+  if (drawerRoute() || location.hash === '#board' || location.hash === '#history') return 'board'
   const saved = pref('view2')
   return saved && saved !== 'now' ? 'board' : 'now'
 }
@@ -361,14 +384,15 @@ function shell() {
   setupBell($('bell'))
   $('key').onclick = setPassword
   window.addEventListener('hashchange', () => {
-    closeTask()
+    closeTask(false)
     view = dashboardView()
     pref('view2', view)
     renderBoard()
+    if (drawerRoute()) { openRoute(); return }
     if (location.hash === '#history') document.getElementById('done-column')?.scrollIntoView({block:'start'})
     else window.scrollTo(0, 0)
   })
-  $('new').onclick = newTask
+  $('new').onclick = () => newTask()
   $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); renderBoard() }
   $('proj').onchange = e => { project = e.target.value; pref('project', project); renderBoard() }
   $('shade').onclick = closeTask
@@ -589,9 +613,20 @@ async function renderNow(vis) {
   }
   const recentHeld = async () => {
     if (!TT) return { data:[] }
-    const result = await heldQuery().is('legacy_status',null).order('created_at',{ascending:false}).limit(60)
-    if (result.error?.code === '42703') return heldQuery().order('created_at',{ascending:false}).limit(60)
-    return result
+    const rows = []
+    let legacyColumn = true
+    for (let offset = 0; ; offset += 200) {
+      let page = heldQuery()
+      if (legacyColumn) page = page.is('legacy_status',null)
+      let result = await page.order('created_at',{ascending:false}).order('id').range(offset,offset+199)
+      if (legacyColumn && result.error?.code === '42703') {
+        legacyColumn = false
+        result = await heldQuery().order('created_at',{ascending:false}).order('id').range(offset,offset+199)
+      }
+      if (result.error) return result
+      rows.push(...result.data)
+      if (result.data.length < 200) return {data:rows}
+    }
   }
   const [heldResult, n, m] = await Promise.all([
     recentHeld(), sb.rpc('studio_now'), ids.length ? sb.from('studio_messages').select('task_id,seq,author,kind,body,refs,set_turn,set_status,created_at').in('task_id',ids).order('seq',{ascending:false}).limit(300) : {data:[]}
@@ -608,17 +643,34 @@ async function renderNow(vis) {
   if (seq !== nowSeq || view !== 'now') return
   const labels = new Map(tasks.map(t => [t.id, t]))
   const held = heldResult.data || []
-  const relevantArt = held.filter(a => {
-    const parent = labels.get(a.task_id)
-    if (project !== 'all' && parent?.project !== project) return false
-    return !query || [a.original_name, a.file_name, parent?.project, parent?.title, parent?.brief].some(v => v?.toLowerCase().includes(query))
+  const groups = new Map()
+  for (const asset of held) {
+    const task = labels.get(asset.task_id)
+    if (project !== 'all' && task?.project !== project) continue
+    const groupId = asset.task_id || asset.id
+    if (!groups.has(groupId)) groups.set(groupId, [])
+    groups.get(groupId).push(asset)
+  }
+  const artDecisions = []
+  const visibleGroups = [...groups.values()].filter(group => {
+    const task = labels.get(group[0].task_id)
+    return !query || [task?.project, task?.title, task?.brief,
+      ...group.flatMap(asset => [asset.original_name, asset.file_name])].some(v => v?.toLowerCase().includes(query))
   })
-  const artUrl = await signedUrls(relevantArt)
+  const artUrl = await signedUrls(visibleGroups.flatMap(group => group.slice(0, 5)))
   if (seq !== nowSeq || view !== 'now') return
-  const decisions = relevantArt.map(a => {
-    const t = labels.get(a.task_id)
-    return { thumb:artUrl(a.id), title:a.original_name || a.file_name, project:t?.project || 'Art review', reason:t?.title || 'Picture ready for your decision', action:'Review picture', href:'approve/?id=' + encodeURIComponent(a.id) }
-  })
+  for (const group of visibleGroups) {
+    const first = group[0], task = labels.get(first.task_id)
+    const count = group.length, pictures = count === 1 ? 'picture' : 'pictures'
+    artDecisions.push({
+      title: task?.title || first.original_name || first.file_name, project: task?.project || 'Art review',
+      reason: count === 1 ? (task ? first.original_name || first.file_name : '1 picture to review') : count + ' pictures to review',
+      thumbs: group.slice(0,5).map(asset => artUrl(asset.id)).filter(Boolean),
+      action: count === 1 ? 'Review picture' : 'Review ' + count + ' ' + pictures,
+      href: 'approve/?id=' + encodeURIComponent(first.id) + (first.task_id ? '&group=task' : '')
+    })
+  }
+  const urgent = [], ordinary = []
   const work = []
   nowLive = false
   for (const t of active) {
@@ -627,21 +679,23 @@ async function renderNow(vis) {
     if (state.live) nowLive = true
     const item = { title:t.title, project:t.project, id:t.id, reason:tm[0]?.kind === 'question' ? tm[0].body.split('\n')[0].slice(0,180) : state.detail || state.label, action:'Open task' }
     if (t.status === 'blocked' || state.cls === 'bad') {
-      decisions.push({ ...item, action:state.retry ? 'Review stopped run' : 'Resolve task' })
+      urgent.push({ ...item, action:state.retry ? 'Review stopped run' : 'Resolve task' })
     } else if (t.turn === 'spitz') {
-      decisions.push({ ...item, action:state.pr ? 'Review PR' : tm[0]?.kind === 'question' ? 'Answer question' : 'Review task', href:state.pr })
+      const list = tm[0]?.kind === 'question' ? urgent : ordinary
+      list.push({ ...item, action:state.pr ? 'Review PR' : tm[0]?.kind === 'question' ? 'Answer question' : 'Review task', href:state.pr })
     } else if (t.turn === 'chatgpt_chat') {
-      decisions.push({ ...item, reason:'Your chat is waiting for you to start it.', action:'Open in ChatGPT', href:startUrl('chatgpt', t) })
+      ordinary.push({ ...item, reason:'Your chat is waiting for you to start it.', action:'Open in ChatGPT', href:startUrl('chatgpt', t) })
     } else {
       work.push({t, state})
     }
   }
+  const decisions = [...urgent, ...artDecisions, ...ordinary]
   const cap = (title, count, dateLabel) => `<div class="capline"><h2>${title}</h2><span class="num">${count}</span>${dateLabel ? `<span class="date">${esc(dateLabel)}</span>` : ''}</div>`
   const entry = (d, i) => {
     const cls = 'decision' + (i ? ' secondary' : '')
     const attrs = d.href ? `href="${esc(d.href)}" ${d.href.startsWith('https://') ? 'target="_blank" rel="noopener"' : ''}` : `data-open="${esc(d.id)}"`
     const tag = d.href ? 'a' : 'button'
-    return `<article class="entry"><div class="entrybody">${d.thumb ? `<img class="entrythumb" src="${esc(d.thumb)}" alt="">` : ''}<div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p></div></div><${tag} class="${cls}" ${attrs}>${esc(d.action)}</${tag}></article>`
+    return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div><${tag} class="${cls}" ${attrs}>${esc(d.action)}</${tag}></article>`
   }
   const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task history</button></div></details>`
   const finished = t => `<button class="finished" data-open="${esc(t.id)}"><span aria-hidden="true" class="tick">✓</span><span class="rowtext"><strong>${esc(t.title)}</strong><span class="stamp">${esc(t.project)} · ${ago(t.updated_at)}</span></span></button>`
@@ -674,17 +728,49 @@ const startUrl = (who, t) => {
   return (who === 'chatgpt' ? 'https://chatgpt.com/?q=' : 'https://claude.ai/new?q=') + encodeURIComponent(msg)
 }
 
-function closeTask() { openId = null; drawerLive = false; document.body.classList.remove('open') }
+function closeTask(clearRoute = true) {
+  drawerRequest++; openId = null; drawerLive = false; document.body.classList.remove('open')
+  if (clearRoute && drawerRoute()) history.replaceState(null, '', '#board')
+}
+
+async function openRoute() {
+  const match = drawerRoute()
+  if (!match) return
+  const [, kind, id] = match
+  if (kind === 'task') return renderTask(id)
+  const request = ++drawerRequest
+  const linked = await sb.from('studio_tasks').select('id').eq('request_key','void-' + id).maybeSingle()
+  if (request !== drawerRequest) return
+  if (linked.data) { location.replace('#task=' + linked.data.id); return }
+  let idea, error = linked.error
+  if (!error) {
+    const result = await sb.from('void_ideas').select('id,body,category').eq('id',id).maybeSingle()
+    idea = result.data; error = result.error
+    if (['42P01','PGRST205'].includes(error?.code)) {
+      try { idea = JSON.parse(localStorage.getItem('void_preview_ideas') || '[]').find(x => x.id === id); error = null } catch {}
+    }
+  }
+  if (request !== drawerRequest) return
+  if (idea) newTask(idea)
+  else document.getElementById('status').textContent = error?.message || 'This idea is no longer available.'
+}
 
 async function renderTask(id, quiet) {
-  const t = tasks.find(x => x.id === id); if (!t) return
-  openId = id; document.body.classList.add('open')
+  const request = ++drawerRequest
+  openId = id
+  let t = tasks.find(x => x.id === id)
+  if (!t) {
+    const result = await sb.from('studio_tasks').select('*').eq('id',id).maybeSingle()
+    if (request !== drawerRequest) return
+    t = norm(result.data)
+    if (!t) { closeTask(); document.getElementById('status').textContent = result.error?.message || 'This task is no longer available.'; return }
+  }
+  document.body.classList.add('open')
   const d = document.getElementById('drawer')
-  const draft = d.querySelector('textarea')?.value || ''
-  if (!quiet) d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3><div class="sub">Loading...</div></div><button class="btn" id="x">Close</button></div>`
+  if (!quiet) { d.dataset.sig = ''; d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3><div class="sub">Loading...</div></div><button class="btn" id="x">Close</button></div>`; d.querySelector('#x').onclick = closeTask }
   const { data: msgs0, error } = await sb.from('studio_messages').select('*').eq('task_id', id).order('seq', { ascending: true })
   const msgs = (msgs0 || []).map(norm)
-  if (openId !== id) return
+  if (request !== drawerRequest) return
   if (error) { d.querySelector('.sub').innerHTML = `<span class="err">${esc(error.message)}</span>`; return }
   // images: anything referenced by the task or its messages, plus anything dropped onto this task
   const refIds = [...t.refs, ...msgs.flatMap(m => m.refs)].filter(r => r.type === 'asset').map(r => r.id)
@@ -698,7 +784,7 @@ async function renderTask(id, quiet) {
   const [{ data: runs }, act] = await Promise.all([
     sb.from('studio_worker_runs').select('id,status,detail,created_at,finished_at,step,heartbeat_at,task_version,done_assets,pics:plan->images').eq('task_id', id).order('id', { ascending: false }).limit(1),
     sb.rpc('studio_task_activity', { p_task_id: id })])
-  if (openId !== id) return
+  if (request !== drawerRequest) return
   // Phase 2/3: is the task ready to hand on, and where each picture stands (draft / failed / approved / ready)
   let rd = null; const st = {}, val = {}
   if (TT) {
@@ -706,7 +792,7 @@ async function renderTask(id, quiet) {
     const [q3, q4, q5] = await Promise.all([sb.rpc('studio_task_readiness', { p_task_id: id }),
       ids.length ? sb.from('studio_assets').select('id,status,sha256').in('id', ids) : { data: [] },
       ids.length ? sb.from('studio_validations').select('id,asset_id,sha256,result').in('asset_id', ids).order('id', { ascending: false }) : { data: [] }])
-    if (openId !== id) return
+    if (request !== drawerRequest) return
     rd = !q3.error && q3.data
     ;(q4.data || []).forEach(a => { st[a.id] = a })
     ;(q5.data || []).forEach(v => { if (st[v.asset_id] && v.sha256 === st[v.asset_id].sha256 && !val[v.asset_id]) val[v.asset_id] = v.result })
@@ -759,7 +845,8 @@ async function renderTask(id, quiet) {
     : `<div class="rdy ${rd.ready ? '' : 'no'}">${rd.job_type ? `Job: ${esc(JOB[rd.job_type] || rd.job_type)}${reqN ? ` · ${reqN} required reference${reqN > 1 ? 's' : ''} (${esc([...new Set(rd.required_refs.map(r => ROLE[r.role] || r.role))].join(', '))})` : ''} · ` : ''}`
       + (rd.ready ? '<b>Ready to hand on</b>' : `<b>Not ready to hand on.</b> What's missing:<ul>${(rd.missing || []).map(m => `<li>${esc(m)}</li>`).join('')}</ul><div class="sub">A Claude thread or your ChatGPT chat can add these while it's your turn.</div>`)
       + (noWorker ? '<div class="sub">The ChatGPT worker can\'t take this one: it can\'t see reference pictures. Use your ChatGPT chat or Claude.</div>' : '') + '</div>'
-  const dis = a => (blockHand && ['openai_worker', 'chatgpt_chat', 'claude'].includes(a)) || (noWorker && a === 'openai_worker') ? ' disabled title="Not ready to hand on yet: see what\'s missing above"' : ''
+  const options = Object.keys(sendActions).filter(a => a !== 'chatgpt_chat' || IDV >= 2)
+  const unavailable = a => a !== 'note' && (blockHand || (a === 'openai_worker' && noWorker))
   const turnTxt = t.status === 'done' ? 'Done' : t.turn ? `${WHO[t.turn] || t.turn}${t.turn === 'spitz' ? 'r' : "'s"} turn` : 'Unassigned'
   // background refresh: leave the drawer alone if nothing changed; if something did, keep where you were reading and typing
   const sig = [JSON.stringify(rd), JSON.stringify(st), JSON.stringify(val), t.version, t.status, msgs.length, msgs.length && msgs[msgs.length - 1].seq, run && run.status, run && run.step, run && run.heartbeat, events.length, events[0] && events[0].wake_code, assets.length, rs && rs.label].join('|')
@@ -769,15 +856,15 @@ async function renderTask(id, quiet) {
     focus: document.activeElement === oldTa, a: oldTa?.selectionStart, b: oldTa?.selectionEnd } : null
   d.dataset.sig = sig; d.dataset.task = id
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
-      <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)}</div>
-      <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">open in ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">▶ start Claude</a></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}${readyHtml}</div><button class="btn" id="x">Close</button></div>
+      <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)} <button class="btn dn status-action" id="task-state">${t.status === 'done' ? 'Reopen' : 'Mark done'}</button></div>
+      <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<details class="chat-links"><summary>Open in chat</summary><div class="row"><a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">Claude</a></div></details></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}${readyHtml}</div><button class="btn" id="x">Close</button></div>
     <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
       ${timeline || '<p class="sub">No messages yet.</p>'}
       ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
-    <div class="compose"><textarea id="body" placeholder="Write to ChatGPT and Claude..."></textarea>
-      <div class="sub hint">"Send note" only saves it on the task, it doesn't wake anyone. The worker buttons start ChatGPT or Claude at once; "my ChatGPT chat" waits for you to open it.</div>
-      <div class="row"><button class="btn" data-a="note">Send note</button><button class="btn gptw" data-a="openai_worker"${dis('openai_worker')}>Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-a="chatgpt_chat"${dis('chatgpt_chat') || ' title="Nothing starts by itself"'}>Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-a="claude"${dis('claude')}>Send + Claude worker</button>
-      ${t.status === 'done' ? '<button class="btn dn" data-a="reopen">Reopen</button>' : '<button class="btn dn" data-a="done">Mark done</button>'}<span id="cs"></span></div></div>`
+    <div class="compose"><textarea id="body" aria-label="Task message" placeholder="Write a note or handoff…"></textarea>
+      <div class="row"><label>Destination <select id="destination">${options.map(a => `<option value="${a}" ${unavailable(a) ? 'disabled' : ''}>${sendActions[a][0]}</option>`).join('')}</select></label>
+      <button class="btn" id="send-action"></button></div>
+      <span class="sub" id="cs" role="status"></span></div>`
   d.querySelector('#x').onclick = closeTask
   const rt = d.querySelector('#retry'); if (rt) rt.onclick = () => retryRun(rt, d.querySelector('#rs'))
   const rb = d.querySelector('#run')
@@ -787,8 +874,18 @@ async function renderTask(id, quiet) {
     rs.innerHTML = error ? `<span class="err">${esc(error.message)}</span>` : data && data.woken ? 'ChatGPT is on it. Its reply shows up here in a minute or two.' : esc((data && data.reason) || 'Not woken.')
     rb.disabled = false
   }
-  const ta = d.querySelector('#body'); ta.value = draft
-  d.querySelectorAll('.compose .btn').forEach(b => b.onclick = () => post(t, b.dataset.a))
+  const ta = d.querySelector('#body'), dest = d.querySelector('#destination'), send = d.querySelector('#send-action')
+  ta.value = draftText(id)
+  ta.oninput = () => saveDraft(id,ta.value)
+  const previous = destinations.get(id)
+  dest.value = options.includes(previous) && !unavailable(previous) ? previous : 'note'
+  const labelAction = () => {
+    const [,label,colour] = sendActions[dest.value]
+    send.textContent = label; send.className = 'btn ' + colour; destinations.set(id,dest.value)
+  }
+  labelAction(); dest.onchange = labelAction
+  send.onclick = () => post(t, dest.value)
+  d.querySelector('#task-state').onclick = () => post(t, t.status === 'done' ? 'reopen' : 'done')
   const db = d.querySelector('.dbody')
   if (keep) {
     if (keep.brief !== undefined) d.querySelector('details.brief').open = keep.brief
@@ -799,10 +896,13 @@ async function renderTask(id, quiet) {
 
 async function post(t, action) {
   const d = document.getElementById('drawer')
-  return sendMsg(t, action, d.querySelector('#body'), d.querySelector('#cs'), d.querySelectorAll('.compose .btn'))
+  if (busy) return
+  return sendMsg(t, action, d.querySelector('#body'), d.querySelector('#cs'), d.querySelectorAll('#send-action,#destination,#task-state'))
 }
-async function sendMsg(t, action, ta, cs, btns, onSent) {
-  let body = ta.value.trim()
+async function sendMsg(t, action, ta, cs, btns) {
+  const statusChange = action === 'done' || action === 'reopen'
+  const original = ta.value
+  let body = statusChange ? '' : original.trim()
   if (!body) {
     if (action === 'done') body = 'Marked done.'
     else if (action === 'reopen') body = 'Reopened.'
@@ -818,27 +918,51 @@ async function sendMsg(t, action, ta, cs, btns, onSent) {
   busy = false; btns.forEach(b => b.disabled = false)
   if (error) { cs.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Replies from the dashboard are not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
   if (data && data.conflict) { cs.innerHTML = '<span class="err">Someone posted first. Here is the latest; try again.</span>'; await load(); return }
-  ta.value = ''; if (onSent) onSent(); cs.innerHTML = '<span class="ok">Sent.</span>'
+  if (!statusChange && draftText(t.id) === original) {
+    saveDraft(t.id,'')
+    const current = openId === t.id && document.getElementById('drawer').querySelector('#body')
+    if (current) current.value = ''
+  }
+  cs.innerHTML = '<span class="ok">Saved.</span>'
   ta.blur(); await load()
 }
 
-function newTask() {
+function newTask(idea = null) {
+  const requestKey = idea ? 'void-' + idea.id : key()
+  drawerRequest++
   const projects = [...new Set(tasks.map(t => t.project))].sort()
   openId = null; document.body.classList.add('open')
   const d = document.getElementById('drawer')
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>New task</h3><div class="sub">ChatGPT and Claude only see what you write here, so include everything they need.</div></div><button class="btn" id="x">Close</button></div>
     <form class="dbody" id="nf">
-      <label class="field"><span>Project (lowercase, like rook-and-ruin)</span><input id="np" required pattern="[a-z0-9][a-z0-9-]{0,39}" list="pl" value="${esc(project !== 'all' ? project : projects[0] || '')}"><datalist id="pl">${projects.map(p => `<option value="${esc(p)}">`).join('')}</datalist></label>
+      <label class="field"><span>Project (lowercase, like rook-and-ruin)</span><input id="np" required pattern="[a-z0-9][a-z0-9-]{0,39}" list="pl" value="${esc(idea ? (projects.includes(idea.category) ? idea.category : '') : project !== 'all' ? project : projects[0] || '')}"><datalist id="pl">${projects.map(p => `<option value="${esc(p)}">`).join('')}</datalist></label>
       <label class="field"><span>Title</span><input id="nt" required maxlength="200"></label>
       <label class="field"><span>Brief: the goal, the rules, and what to send back</span><textarea id="nb" required maxlength="8000"></textarea></label>
       <label class="field"><span>Who goes first</span><select id="nw" required><option value="" disabled selected>Choose who goes first</option><option value="openai_worker">ChatGPT worker (starts at once, costs money)</option>${IDV >= 2 ? '<option value="chatgpt_chat">My ChatGPT chat (waits for me)</option>' : ''}<option value="claude">Claude worker (starts at once)</option></select></label>
       <div class="row"><button class="btn primary" type="submit">Create task</button><span id="ns"></span></div></form>`
   d.querySelector('#x').onclick = closeTask
-  d.querySelector('#nf').onsubmit = async e => {
-    e.preventDefault(); const ns = d.querySelector('#ns'); ns.textContent = 'Creating...'
-    const { data, error } = await sb.rpc('studio_create_task', { p_request_key: key(), p_project: d.querySelector('#np').value.trim(), p_title: d.querySelector('#nt').value.trim(), p_brief: d.querySelector('#nb').value.trim(), p_turn: oid(d.querySelector('#nw').value), p_refs: [] })
-    if (error) { ns.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Creating tasks from the dashboard is not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
-    await load(); renderTask(data.task.id)
+  if (idea) {
+    d.querySelector('#nt').value = idea.body.trim().split(/\r?\n/)[0].slice(0,200)
+    d.querySelector('#nb').value = idea.body
+  }
+  const form = d.querySelector('#nf')
+  form.onsubmit = async e => {
+    e.preventDefault()
+    const button = form.querySelector('button[type=submit]'), ns = form.querySelector('#ns')
+    if (button.disabled) return
+    button.disabled = true; ns.textContent = 'Creating...'
+    const { data, error } = await sb.rpc('studio_create_task', { p_request_key: requestKey, p_project: d.querySelector('#np').value.trim(), p_title: d.querySelector('#nt').value.trim(), p_brief: d.querySelector('#nb').value.trim(), p_turn: oid(d.querySelector('#nw').value), p_refs: [] })
+    let taskId = data?.task?.id
+    if (idea && !taskId) {
+      const existing = await sb.from('studio_tasks').select('id').eq('request_key',requestKey).maybeSingle()
+      taskId = existing.data?.id
+    }
+    button.disabled = false
+    if (!form.isConnected || !document.body.classList.contains('open')) return
+    if (!taskId && error) { ns.innerHTML = `<span class="err">${esc(/client_id|connected app/.test(error.message) ? 'Creating tasks from the dashboard is not switched on yet (the database update still needs to be applied).' : error.message)}</span>`; return }
+    if (!taskId) { ns.textContent = 'Could not confirm task creation. Try again.'; return }
+    if (idea) { location.replace('#task=' + encodeURIComponent(taskId)); return }
+    await load(); if (form.isConnected && document.body.classList.contains('open')) renderTask(taskId)
   }
 }
 </script>

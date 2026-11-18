@@ -108,7 +108,11 @@ h1 b{ color:var(--am); }
 .idea .h{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-bottom:6px; }
 .idea .c{ color:var(--am2); }
 .idea .b{ white-space:pre-wrap; }
-.idea .acts{ display:flex; gap:6px; margin-left:auto; }
+.idea .acts{display:flex;align-items:flex-start;gap:6px;margin-left:auto}
+.idea .acts a{text-decoration:none;color:var(--am2)}.idea details{position:relative}
+.idea details summary{list-style:none;cursor:pointer}.idea details summary::-webkit-details-marker{display:none}
+.idea .more-actions{display:grid;gap:4px;position:absolute;right:0;top:100%;z-index:2;min-width:88px;padding:5px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.idea:has(details[open]){z-index:1;position:relative}
 .idea textarea{ width:100%; min-height:90px; resize:vertical; background:var(--bg); border:1px solid var(--am); border-radius:6px; padding:10px; font-size:16px; }
 .idea select{ background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:5px 8px; }
 .idea .row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:8px; }
@@ -161,6 +165,7 @@ const uuid = () => crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now() + 
 const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v) } catch (e) { return null } }
 
 const app = document.getElementById('app')
+const linkedTasks = new Map()
 let sb, preview = false, ideas = [], filter = store('void_filter') || 'all', editing = null, lastQuote = null, toastTimer
 
 // ---- storage: Supabase table void_ideas, or a clearly labelled local preview until it exists
@@ -208,6 +213,18 @@ async function start() {
     preview = true; ideas = await db.list()
   }
   shell(); renderList()
+  await refreshLinks()
+  window.addEventListener('pageshow', e => { if (e.persisted) refreshLinks() })
+}
+
+async function refreshLinks() {
+  const keys = ideas.map(idea => 'void-' + idea.id)
+  for (let i = 0; i < keys.length; i += 60) {
+    const result = await sb.from('studio_tasks').select('id,request_key').in('request_key', keys.slice(i,i+60))
+    if (result.error) { setErr('Could not load task links. Opening an idea will check its task again.'); return }
+    for (const task of result.data || []) linkedTasks.set(task.request_key,task.id)
+  }
+  if (editing === null) renderList()
 }
 
 function shell() {
@@ -261,7 +278,7 @@ function shell() {
     <div class="filters" id="filters" role="group" aria-label="Show category"></div>
     <div id="list"></div>
     <p class="err" id="err"></p>
-    <p class="sub" id="mode"></p><p class="later">Deposit your thoughts. Reclaim your sanity.<br>// sending an idea to ChatGPT or Claude: coming later. For now, use Copy.</p>`
+    <p class="sub" id="mode"></p><p class="later">Deposit your thoughts. Reclaim your sanity.</p>`
   document.getElementById('mode').textContent = preview ? 'local preview' : 'private · synced'
   const body = document.getElementById('body'), form = document.getElementById('cap')
   body.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit() } })
@@ -332,6 +349,12 @@ function suckIn(ta, text) {
 }
 function setErr(m) { const e = document.getElementById('err'); if (e) e.textContent = m }
 
+function taskLink(ideaId) {
+  const taskId = linkedTasks.get('void-' + ideaId)
+  const route = taskId ? 'task=' + encodeURIComponent(taskId) : 'idea=' + encodeURIComponent(ideaId)
+  return `<a class="btn sm" href="../#${route}">${taskId ? 'Open task' : 'Make task'}</a>`
+}
+
 function renderList() {
   const counts = Object.fromEntries(CATS.map(([k]) => [k, ideas.filter(x => x.category === k).length]))
   if (filter !== 'all' && !CAT[filter]) filter = 'all'
@@ -347,7 +370,7 @@ function renderList() {
         <button class="btn sm" data-a="save">save</button><button class="btn sm" data-a="cancel">cancel</button></div></article>` : `
     <article class="idea" data-id="${x.id}">
       <div class="h"><span class="c">${cico(x.category)}${esc(CAT[x.category] || x.category)}</span><time datetime="${esc(x.created_at)}" title="${esc(new Date(x.created_at).toLocaleString())}">${when(x.created_at)}</time>${x.updated_at && new Date(x.updated_at) - new Date(x.created_at) > 60e3 ? '<span>· edited</span>' : ''}
-        <span class="acts"><button class="btn sm" data-a="copy" title="Copy the text">copy</button><button class="btn sm" data-a="edit">edit</button><button class="btn sm danger" data-a="del">delete</button></span></div>
+        <div class="acts">${taskLink(x.id)}<details><summary class="btn sm" aria-label="More idea actions">•••</summary><div class="more-actions"><button class="btn sm" data-a="copy">Copy</button><button class="btn sm" data-a="edit">Edit</button><button class="btn sm danger" data-a="del">Delete</button></div></details></div></div>
       <div class="b">${esc(x.body)}</div></article>`).join('') ||
     `<p class="empty">${ideas.length ? 'nothing in this corner of the void.' : 'the void is empty. it is patient.'}</p>`
   el.querySelectorAll('[data-a]').forEach(b => b.onclick = () => act(b.dataset.a, b.closest('.idea').dataset.id, b))

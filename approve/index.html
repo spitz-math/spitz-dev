@@ -52,7 +52,7 @@ h2{ font-size:13px; color:var(--muted); margin:18px 0 8px; font-weight:600; }
 .facts dt{ color:var(--muted); } .facts dd{ margin:0; overflow-wrap:anywhere; }
 .need{ border:2px solid var(--chatgpt); border-radius:8px; padding:10px 12px; margin:10px 0; color:var(--chatgpt-text); }
 .need b{ color:var(--ink); }
-.decide{ position:sticky; bottom:0; background:var(--bg); border-top:1px solid var(--line); padding:10px 0 14px; margin-top:16px; }
+.decide{ background:var(--bg); border-top:1px solid var(--line); padding:10px 0 14px; margin-top:16px; }
 .decide .big{ flex:1 1 30%; min-width:96px; padding:13px 10px; font-weight:700; font-size:15px; }
 .big.ap{ border-color:var(--good); color:var(--good); } .big.ap:hover{ background:var(--good); color:#000; }
 .big.ch{ border-color:var(--warn); color:var(--warn); } .big.ch:hover{ background:var(--warn); color:#000; }
@@ -64,6 +64,7 @@ textarea{ width:100%; min-height:84px; background:var(--panel2); border:1px soli
 .login input{ width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:9px; margin:6px 0; }
 input[type=range]{ flex:1; min-width:120px; accent-color:var(--orange); }
 .history li{ margin:4px 0; }
+.decision-name{overflow-wrap:anywhere;margin:0 0 8px}.file-details{border-top:1px solid var(--line);padding:14px 0}.file-details summary{cursor:pointer}.file-details dd{overflow-wrap:anywhere}
 </style>
 <link rel="stylesheet" href="../studio-nav.css">
 <script src="../studio-nav.js"></script>
@@ -158,7 +159,7 @@ async function review(id) {
     <h1>${esc(a.original_name || a.file_name)}</h1>
     <div class="row"><span class="badge ${esc(a.status)}">${esc(STATUS[a.status] || a.status)}</span>
       <span class="sub">${a.width}x${a.height} · made by ${esc(WHO[a.made_by] || a.made_by || 'unknown')} · ${ago(a.created_at)}</span></div>
-    ${task ? `<p class="sub">Task: <a href="../">${esc(task.title)}</a> (${esc(task.project)})</p>` : ''}
+    ${task ? `<p class="sub">Task: <a href="../#task=${encodeURIComponent(task.id)}">${esc(task.title)}</a> (${esc(task.project)})</p>` : ''}
     <div id="need"></div>
     ${pics.length > 1 ? `<h2>WHERE IT CAME FROM (tap one to view)</h2><div class="chain" id="chain">${pics.map((p, i) => `${i ? '<span class="arrow">→</span>' : ''}<button class="step ${i === pics.length - 1 ? 'me' : ''}" data-i="${i}"><div class="sub">${kind(p.a, i, pics.length)}</div><canvas></canvas><div class="sub">${p.a.width}x${p.a.height} · <span class="badge ${esc(p.a.status)}">${esc(STATUS[p.a.status] || p.a.status)}</span></div></button>`).join('')}</div>` : ''}
     <h2 id="vt">THE EXACT FILE</h2>
@@ -168,7 +169,13 @@ async function review(id) {
     <div id="player"></div>
     <h2>AT TRUE GAME SIZE (1x, no scaling)</h2>
     <div class="panel bg-checker native" id="native"></div>
-    <h2>CHECKS</h2>
+    <div class="decide">
+      <p class="decision-name" id="decision-name"></p>
+      ${me.match ? '' : '<p class="err" role="alert">The stored file failed verification. Approval is unavailable.</p>'}
+      <button class="btn" id="return-submission" hidden>Return to submission</button>
+      <div id="decide"></div>
+    </div>
+    <details class="file-details"><summary>File details</summary>
     <dl class="facts">
       <dt>stored SHA-256</dt><dd>${esc(a.sha256)}</dd>
       <dt>bytes shown here</dt><dd class="${me.match ? 'ok' : 'err'}">${me.match ? '✓ same file: this page checked the bytes it shows against the stored checksum' : '✗ the bytes do not match the stored checksum. Do not approve.'}</dd>
@@ -183,7 +190,7 @@ async function review(id) {
     <ul class="history sub">${(apQ.data || []).map(h => h.method === 'proof'
       ? `<li>approved automatically by pixel proof · ${ago(h.at)} · ${esc(h.note || '')}</li>`
       : `<li>${esc(h.verdict)} by you · ${ago(h.at)} · ${esc(h.method || h.by_app)}${h.device ? ' · ' + esc(h.device) : ''}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>
-    <div class="decide" id="decide"></div>`
+    </details>`
 
   // waiting-on-you banner for a task parked on the ChatGPT chat
   needBanner(task)
@@ -199,8 +206,21 @@ async function review(id) {
     for (const el of [stage, document.getElementById('native')]) el.className = el.className.replace(/bg-\w+/, 'bg-' + b.dataset.bg) })
   const maxW = () => Math.min(stage.clientWidth || 340, 940) - 24, maxH = () => Math.max(260, Math.round(innerHeight * 0.55))
 
+  const dec = document.getElementById('decide')
+  const back = document.getElementById('return-submission')
+  back.onclick = () => { show(pics.length - 1); stage.scrollIntoView({block:'center'}) }
+  function updateDecisionTarget() {
+    const submission = !comparing && cur === pics.length - 1
+    dec.hidden = !submission
+    back.hidden = submission
+    document.getElementById('decision-name').textContent = comparing ? 'Comparing source and submission' :
+      (submission ? 'Submission · ' : 'Earlier file · ') + (pics[cur].a.original_name || pics[cur].a.file_name)
+  }
+
   function show(i) {
     cur = i; comparing = false; flipped = false; clearInterval(timer)
+    updateDecisionTarget()
+    if (cmp) { cmp.classList.remove('on'); cmp.textContent = 'compare with source' }
     const p = pics[i]; document.getElementById('vt').textContent = i === pics.length - 1 ? 'THE EXACT FILE' : `${kind(p.a, i, pics.length).toUpperCase()} (an earlier file in the chain)`
     document.querySelectorAll('#chain .step').forEach(b => b.classList.toggle('me', +b.dataset.i === i))
     const fl = document.getElementById('flip'); if (fl) fl.hidden = true
@@ -233,7 +253,7 @@ async function review(id) {
   const cmp = document.getElementById('cmp')
   if (cmp) cmp.onclick = () => {
     if (comparing) return show(pics.length - 1)
-    comparing = true; clearInterval(timer); cmp.classList.add('on'); cmp.textContent = 'stop comparing'
+    show(pics.length - 1); comparing = true; updateDecisionTarget(); document.getElementById('vt').textContent = 'Source comparison'; clearInterval(timer); cmp.classList.add('on'); cmp.textContent = 'stop comparing'
     const fl = document.getElementById('flip'); fl.hidden = false
     const one = p => ({ w: p.a.anim ? p.a.anim.frame_w : p.a.width, h: p.a.anim ? p.a.anim.frame_h : p.a.height })
     const render = () => {
@@ -255,29 +275,50 @@ async function review(id) {
   show(cur)
   addEventListener('resize', () => { if (!comparing) show(cur) })
 
-  // the decision
-  const dec = document.getElementById('decide')
+  // Decisions always refer to the verified submission.
   if (!open) { dec.innerHTML = `<p class="sub">${a.status === 'rejected' ? 'This file was rejected and can never be used. A fix is a new file.' : (apQ.data || [])[0]?.method === 'proof' ? 'Approved automatically: it keeps every pixel of the approved picture it was made from. Approved files never change.' : 'Already decided. Approved files never change.'}</p>`; return }
   if (parent && !['approved', 'ready'].includes(parent.a.status)) { dec.innerHTML = `<p class="sub">Approve <a href="?id=${esc(parent.a.id)}">the picture this was made from</a> first.</p>`; return }
   if (!me.match) { dec.innerHTML = '<p class="err">The bytes here don\'t match the stored checksum, so this file can\'t be approved. Tell Claude.</p>'; return }
-  dec.innerHTML = `<div id="form"></div><div class="row"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes">Changes</button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
+  dec.innerHTML = `<div id="form"></div><div class="row"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes">Request changes</button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
   dec.querySelectorAll('[data-v]').forEach(b => b.onclick = () => decide(b.dataset.v))
   let pending = null
+  let saving = false
   async function decide(v) {
+    if (saving || comparing || cur !== pics.length - 1 || !me.match) return
     const form = document.getElementById('form'), said = document.getElementById('said')
     if ((v === 'changes' || v === 'rejected') && pending !== v) {
       pending = v
-      form.innerHTML = `<textarea id="note" placeholder="${v === 'changes' ? 'What should change? (required)' : 'Why? (optional)'}"></textarea><p class="sub">Tap ${v === 'changes' ? 'Changes' : 'Reject'} again to send.</p>`
+      form.innerHTML = `<textarea id="note" placeholder="${v === 'changes' ? 'What should change? (required)' : 'Why? (optional)'}"></textarea><p class="sub">Tap ${v === 'changes' ? 'Request changes' : 'Reject'} again to send.</p>`
       document.getElementById('note').focus(); return
     }
     const note = (document.getElementById('note') || {}).value || null
     if (v === 'changes' && (!note || note.trim().length < 2)) { said.textContent = 'Say what to change.'; said.className = 'err'; return }
-    dec.querySelectorAll('button').forEach(b => b.disabled = true); said.className = 'sub'; said.textContent = 'Saving…'
+    saving = true; dec.querySelectorAll('button').forEach(b => b.disabled = true); said.className = 'sub'; said.textContent = 'Saving…'
     const { data, error } = await sb.rpc('studio_approve', { p_asset_id: a.id, p_sha256: me.sha, p_verdict: v, p_note: note, p_method: VIA, p_device: device() })
-    if (error) { said.className = 'err'; said.textContent = error.message; dec.querySelectorAll('button').forEach(b => b.disabled = false); return }
+    if (error) { saving = false; said.className = 'err'; said.textContent = error.message; dec.querySelectorAll('button').forEach(b => b.disabled = false); return }
     dec.innerHTML = `<p class="${v === 'approved' ? 'ok' : 'sub'}"><b>${v === 'approved' ? 'Approved' : v === 'changes' ? 'Changes requested' : 'Rejected'}.</b> ${esc(data.next || '')}</p>
       ${data.needs_you_in_chatgpt ? '<div class="need"><b>Needs you:</b> your ChatGPT chat will not start by itself. Open it and ask it to continue this task. Your note is saved on the task.<div class="row" style="margin-top:8px"><a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">open ChatGPT</a></div></div>' : ''}
-      <div class="row"><a class="btn" href="./">next waiting picture</a><a class="btn" href="?id=${esc(a.id)}">reload this one</a></div>`
+      <div class="row" id="next-picture"><a class="btn" href="./">All pending art</a></div>`
+    const sameTask = params.get('group') === 'task' && a.task_id
+    const remaining = includeLegacy => {
+      let q = sb.from('studio_assets').select('id').eq('status','held').neq('id',a.id)
+      if (sameTask) q = q.eq('task_id', a.task_id)
+      if (!includeLegacy) q = q.is('legacy_status',null)
+      return q.order('created_at',{ascending:false}).order('id').limit(1)
+    }
+    let next = await remaining(false)
+    if (next.error?.code === '42703') next = await remaining(true)
+    const row = next.data?.[0]
+    if (row) {
+      const link = document.createElement('a')
+      link.className = 'btn on'; link.textContent = 'Next waiting picture'
+      link.href = '?id=' + encodeURIComponent(row.id) + (sameTask ? '&group=task' : '')
+      document.getElementById('next-picture').prepend(link)
+    } else if (!next.error) {
+      const status = document.createElement('span')
+      status.className = 'sub'; status.textContent = sameTask ? 'All pictures reviewed for this task.' : 'Art queue complete.'
+      document.getElementById('next-picture').prepend(status)
+    }
   }
 }
 

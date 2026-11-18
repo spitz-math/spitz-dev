@@ -66,3 +66,11 @@
 #compacttools .nowtools{justify-content:flex-end}
 
 .signed :is(.drawer,.shade){top:var(--nav-height,64px)}
+
+.nowv .entrythumbs{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.nowv .entrythumbs img{width:44px;height:44px;padding:3px;border-radius:5px}
+
+.compose label{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.compose select{min-height:38px;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:6px;font:inherit;color:var(--ink)}
+.compose #send-action{min-height:38px}.status-action{margin-left:6px}.chat-links summary{cursor:pointer;color:var(--muted);font-size:14px}
+@media(max-width:560px){.compose{padding:8px 12px}.compose textarea{min-height:54px}.compose .row{gap:6px}.compose label{flex-wrap:wrap;gap:4px}.compose #send-action{flex:auto}}
