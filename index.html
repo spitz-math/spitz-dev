@@ -150,7 +150,7 @@ body.signed{min-height:100vh}
 .brief summary{ cursor:pointer; color:var(--muted); }
 .pre{ white-space:pre-wrap; word-wrap:break-word; }
 .msg{ border-left:2px solid var(--c); padding:2px 0 2px 12px; margin:0 0 18px; }
-.msg .h{ font-size:11px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:2px; }
+.msg .h{ font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:2px; }
 .who{ color:var(--ct,var(--c)); font-weight:700; font-size:12px; }
 .who::before{ content:'$ '; color:var(--muted); font-weight:400; }
 .tag{ color:var(--muted); }
@@ -168,7 +168,7 @@ body.signed{min-height:100vh}
 .ti{ display:flex; flex-direction:column; gap:6px; max-width:320px; }
 .rv{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; font-size:12px; }
 .rv .btn{ padding:4px 9px; font-size:12px; }
-.badge{ border:1px solid var(--line); border-radius:4px; padding:1px 6px; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.badge{ border:1px solid var(--line); border-radius:4px; padding:2px 7px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 .badge.ready, .badge.pass{ color:var(--good); border-color:var(--good); }
 .badge.approved{ color:var(--spitz-text); border-color:var(--spitz); }
 .badge.failed, .badge.fail{ color:var(--bad); border-color:var(--bad); }
@@ -184,7 +184,7 @@ body.signed{min-height:100vh}
 .thumb{ background:repeating-conic-gradient(#1D202E 0 25%,#161822 0 50%) 0 0/16px 16px; border:1px solid var(--line); border-radius:6px; padding:6px; max-width:100%; text-decoration:none; }
 .thumb:hover{ border-color:var(--orange); }
 .thumb img{ display:block; max-width:min(320px,100%); max-height:220px; image-rendering:pixelated; }
-.thumb .cap{ font-size:11px; color:var(--muted); margin-top:4px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.thumb .cap{ font-size:12px; color:var(--muted); margin-top:4px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .compose{ border-top:1px solid var(--orange); padding:12px 20px 16px; background:var(--panel); }
 .compose textarea{ width:100%; min-height:72px; resize:vertical; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:10px; caret-color:var(--orange); }
 @media all{ .compose .hint{ margin:6px 0 2px; font-size:12px; } }
@@ -663,6 +663,7 @@ async function renderNow(vis) {
     const first = group[0], task = labels.get(first.task_id)
     const count = group.length, pictures = count === 1 ? 'picture' : 'pictures'
     artDecisions.push({
+      taskId: first.task_id || null,
       title: task?.title || first.original_name || first.file_name, project: task?.project || 'Art review',
       reason: count === 1 ? (task ? first.original_name || first.file_name : '1 picture to review') : count + ' pictures to review',
       thumbs: group.slice(0,5).map(asset => artUrl(asset.id)).filter(Boolean),
@@ -689,13 +690,27 @@ async function renderNow(vis) {
       work.push({t, state})
     }
   }
-  const decisions = [...urgent, ...artDecisions, ...ordinary]
+  // One row per task: a task that is waiting on Kody AND has pictures waiting shows once, with both actions.
+  const artByTask = new Map(artDecisions.filter(a => a.taskId).map(a => [a.taskId, a]))
+  for (const [list, artFirst] of [[urgent, false], [ordinary, true]]) for (const item of list) {
+    const art = artByTask.get(item.id); if (!art) continue
+    artByTask.delete(item.id)
+    item.thumbs = art.thumbs; item.reason = item.reason ? item.reason + ' · ' + art.reason : art.reason
+    const own = { action:item.action, href:item.href, id:item.id }, pic = { action:art.action, href:art.href }
+    Object.assign(item, artFirst ? pic : own, { second: artFirst ? own : pic })
+  }
+  const looseArt = artDecisions.filter(a => !a.taskId || artByTask.has(a.taskId))
+  const decisions = [...urgent, ...looseArt, ...ordinary]
   const cap = (title, count, dateLabel) => `<div class="capline"><h2>${title}</h2><span class="num">${count}</span>${dateLabel ? `<span class="date">${esc(dateLabel)}</span>` : ''}</div>`
   const entry = (d, i) => {
     const cls = 'decision' + (i ? ' secondary' : '')
-    const attrs = d.href ? `href="${esc(d.href)}" ${d.href.startsWith('https://') ? 'target="_blank" rel="noopener"' : ''}` : `data-open="${esc(d.id)}"`
-    const tag = d.href ? 'a' : 'button'
-    return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div><${tag} class="${cls}" ${attrs}>${esc(d.action)}</${tag}></article>`
+    const btn = (a, c) => {
+      const attrs = a.href ? `href="${esc(a.href)}" ${a.href.startsWith('https://') ? 'target="_blank" rel="noopener"' : ''}` : `data-open="${esc(a.id)}"`
+      const tag = a.href ? 'a' : 'button'
+      return `<${tag} class="${c}" ${attrs}>${esc(a.action)}</${tag}>`
+    }
+    const acts = d.second ? `<div class="entryacts">${btn(d, cls)}${btn(d.second, 'decision secondary')}</div>` : btn(d, cls)
+    return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div>${acts}</article>`
   }
   const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task history</button></div></details>`
   const finished = t => `<button class="finished" data-open="${esc(t.id)}"><span aria-hidden="true" class="tick">✓</span><span class="rowtext"><strong>${esc(t.title)}</strong><span class="stamp">${esc(t.project)} · ${ago(t.updated_at)}</span></span></button>`
@@ -858,9 +873,9 @@ async function renderTask(id, quiet) {
   d.innerHTML = `<div class="dhead"><div class="grow"><h3>${esc(t.title)}</h3>
       <div class="sub">${esc(t.project)} · ${turnTxt} · started by ${esc(WHO[t.created_by] || t.created_by)} ${ago(t.created_at)} <button class="btn dn status-action" id="task-state">${t.status === 'done' ? 'Reopen' : 'Mark done'}</button></div>
       <div class="row start">${rs && rs.retry ? `<button class="btn gptw" id="retry" data-retry="${rs.retry}">Retry</button>` : gptTurn && !(rs && (rs.live || rs.hold)) ? '<button class="btn gptw" id="run">▶ run ChatGPT now</button>' : ''}<details class="chat-links"><summary>Open in chat</summary><div class="row"><a class="btn gpt" target="_blank" rel="noopener" href="${startUrl('chatgpt', t)}">ChatGPT</a><a class="btn cl" target="_blank" rel="noopener" href="${startUrl('claude', t)}">Claude</a></div></details></div>${runTxt ? `<div class="sub" id="rs">${runTxt}</div>` : '<div class="sub" id="rs"></div>'}${readyHtml}</div><button class="btn" id="x">Close</button></div>
-    <div class="dbody"><details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief</summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
-      ${timeline || '<p class="sub">No messages yet.</p>'}
-      ${loose.length ? `<div class="msg"><div class="h">Other images on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}</div>
+    <div class="dbody">${loose.length ? `<div class="picstrip"><div class="h">Pictures on this task</div><div class="thumbs">${loose.map(thumb).join('')}</div></div>` : ''}
+      <details class="brief" ${msgs.length ? '' : 'open'}><summary>Brief<span class="briefpeek">${esc((t.brief || '').replace(/\s+/g, ' ').slice(0, 220))}</span></summary><div class="pre">${linkify(t.brief)}</div>${briefRefs}</details>
+      ${timeline || '<p class="sub">No messages yet.</p>'}</div>
     <div class="compose"><textarea id="body" aria-label="Task message" placeholder="Write a note or handoff…"></textarea>
       <div class="row"><label>Destination <select id="destination">${options.map(a => `<option value="${a}" ${unavailable(a) ? 'disabled' : ''}>${sendActions[a][0]}</option>`).join('')}</select></label>
       <button class="btn" id="send-action"></button></div>

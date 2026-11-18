@@ -39,3 +39,14 @@ studio-nav .studio-bar{display:block;position:static;margin:0;padding:0;backgrou
  .studio-tab i{width:24px;height:20px}
 }
 @media(max-width:460px){.studio-tab{flex-direction:column;gap:1px}.studio-tab i{width:24px;height:20px}}
+
+/* Phones and touch screens: every tap target at least 40px tall */
+@media (max-width:560px), (pointer:coarse){
+  button.btn, button.lnk, .decision, select, .btn.sm{min-height:40px}
+  a.btn, a.lnk, a.decision{display:inline-flex;align-items:center;min-height:40px}
+  summary{padding-block:9px}
+  .btn.sm{min-width:40px;justify-content:center}
+  #rf, #out, button.f{min-height:40px}
+  a.rvl{display:inline-flex;align-items:center;min-height:40px}
+  .cats .cat span{display:inline-flex;align-items:center;min-height:40px}
+}
