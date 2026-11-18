@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_line_64.png">
@@ -12,8 +12,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="spitz.dev">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <style>
 /* spitz.dev: Kody's board for the tasks ChatGPT and Claude share (Task Drop). Private: sign-in required, noindex.
@@ -95,66 +93,9 @@ main{ padding:18px 20px 40px; }
   background:repeating-conic-gradient(#272A3B 0 25%,#1D202E 0 50%) 0 0/10px 10px; }
 .card::after{ content:''; display:block; clear:both; }
 .who-spitz{ --c:var(--spitz); --ct:var(--spitz-text); } .who-chatgpt{ --c:var(--chatgpt); --ct:var(--chatgpt-text); } .who-gptw{ --c:var(--gptw); --ct:var(--gptw-text); } .who-claude{ --c:var(--claude); --ct:var(--claude-text); } .who-done{ --c:var(--done); --ct:var(--done-text); }
-/* layout + side bar (like Checkpoint's) */
-body.signed{ display:grid; grid-template-columns:232px minmax(0,1fr); min-height:100vh; }
-body.signed.mini{ grid-template-columns:64px minmax(0,1fr); }
-.side, main{ min-width:0; }
-#app{ display:contents; }
-.side{ position:sticky; top:0; height:100vh; display:flex; flex-direction:column; gap:10px; padding:14px 12px; background:var(--panel); border-right:1px solid var(--orange); overflow:auto; }
-.side svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
-.brand{ display:flex; align-items:center; gap:10px; padding:2px 2px 6px; font-weight:700; font-size:16px; }
-.brand img{ height:26px; width:auto; }
-.brand b{ color:var(--orange); }
-.ib{ background:transparent; border:1px solid transparent; border-radius:6px; padding:6px; cursor:pointer; color:var(--muted); display:grid; place-items:center; }
-.ib:hover{ color:var(--orange); border-color:var(--line); }
-.ib.lit{ color:var(--orange); }
-.collapse{ margin-left:auto; }
-.mini .collapse svg{ transform:rotate(180deg); }
-.search{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:6px; padding:0 10px; background:var(--bg); color:var(--muted); cursor:text; }
-.search:focus-within{ border-color:var(--orange); }
-.search input{ flex:1; min-width:0; border:0; background:transparent; outline:none; padding:8px 0; caret-color:var(--orange); }
-.proj{ background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px; }
-.proj:focus{ border-color:var(--orange); outline:none; }
-.nb{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:transparent; border:1px solid transparent; border-radius:6px; padding:8px 10px; cursor:pointer; color:var(--ink); }
-.nb:hover{ border-color:var(--line); color:var(--orange2); }
-.nb.on{ background:var(--orange); color:#000; font-weight:700; }
-.nb .n{ margin-left:auto; font-size:12px; color:var(--ct,var(--muted)); }
-.nb.on .n{ color:#000; }
-.newb{ border-color:var(--orange); color:var(--orange); font-weight:700; }
-a.nb.appr{ text-decoration:none; color:var(--orange2); } a.nb.appr:hover{ border-color:var(--orange); }
-a.nb.void{ text-decoration:none; color:var(--void-text); } a.nb.void:hover{ border-color:var(--void); color:var(--void-text); }
-nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--line); padding-top:10px; }
-.foot{ display:flex; align-items:center; gap:4px; border-top:1px solid var(--line); padding-top:10px; }
-.live{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-right:auto; padding-left:4px; }
-.live i{ width:8px; height:8px; border-radius:50%; background:var(--good); }
-.live.off i{ background:var(--bad); }
-.side .who{ font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mini .side{ padding:14px 8px; align-items:center; }
-.mini .side .lbl, .mini .side .proj, .mini .side .n{ display:none; }
-.mini .search{ padding:8px; border-color:transparent; }
-.mini .search input{ display:none; }
-.mini .nb{ justify-content:center; padding:9px; }
-.mini .brand{ flex-direction:column; }
-.mini .collapse{ margin:0; }
-.mini .foot{ flex-direction:column; }
-.mini .live{ margin:0 0 4px; padding:0; }
-.list .lh{ margin:0 0 12px; font-size:14px; color:var(--c); }
-.list .lh::before{ content:'> '; color:var(--muted); }
-.list .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
-@media (max-width:760px){
-  body.signed, body.signed.mini{ grid-template-columns:minmax(0,1fr); }
-  input, select, textarea{ font-size:16px; }
-  .side, .mini .side{ position:sticky; height:auto; flex-direction:row; flex-wrap:wrap; align-items:center; border-right:0; border-bottom:1px solid var(--orange); padding:10px 16px; gap:8px; z-index:5; }
-  .side .grow, .side .who, .collapse{ display:none; }
-  .brand{ padding:0; }
-  .search{ flex:1; min-width:140px; }
-  .mini .search input{ display:block; } .mini .side .lbl{ display:inline; } .mini .side .proj{ display:block; }
-  .proj{ flex:1; }
-  .newb{ width:auto; }
-  nav{ flex-direction:row; flex-wrap:wrap; width:100%; border-top:0; padding-top:0; }
-  nav .nb{ width:auto; padding:6px 8px; } nav .nb .lbl{ display:none; } nav .nb.on .lbl{ display:inline; }
-  .foot{ border-top:0; padding-top:0; } .foot .live{ display:none; }
-}
+body.signed{min-height:100vh}
+#app{display:contents}
+@media(max-width:760px){input,select,textarea{font-size:16px}}
 /* Now view: focused, for 1 or 2 active tasks */
 .nowv .lh{ margin:0 0 12px; font-size:14px; color:var(--orange); }
 .nowv .lh::before{ content:'> '; color:var(--muted); }
@@ -280,6 +221,9 @@ nav{ display:flex; flex-direction:column; gap:2px; border-top:1px solid var(--li
 .field textarea{ min-height:180px; }
 :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
 </style>
+<link rel="stylesheet" href="now.css">
+<link rel="stylesheet" href="studio-nav.css">
+<script src="studio-nav.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -373,34 +317,58 @@ const ICON = {
   void:'<circle cx="12" cy="12" r="8"/><path d="M12 7a5 5 0 1 1-5 5"/><circle cx="12" cy="12" r="1.5"/>'
 }
 const ico = n => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`
-let view = ({ kody:'spitz' }[pref('view2')] || pref('view2')) || 'now', query = ''
-const VIEWS = [['now','Now'],['board','Board'],['spitz','Your turn'],['chatgpt','ChatGPT'],['claude','Claude'],['done','Done']]
+const boardColumns = {spitz:'Your turn', chatgpt:'ChatGPT', claude:'Claude', done:'Done'}
+function dashboardView() {
+  if (location.hash === '#now') return 'now'
+  if (location.hash === '#board' || location.hash === '#history') return 'board'
+  const saved = pref('view2')
+  return saved && saved !== 'now' ? 'board' : 'now'
+}
+let view = dashboardView(), query = ''
 
 function shell() {
   document.body.classList.add('signed')
-  if (pref('side') === 'min') document.body.classList.add('mini')
-  app.innerHTML = `<aside class="side" aria-label="Menu">
-      <div class="brand"><img src="burger_line_64.png" alt=""><span class="lbl">spitz<b>.dev</b></span><button class="ib collapse" id="mini" title="Collapse side bar">${ico('chev')}</button></div>
-      <label class="search"><span class="si">${ico('search')}</span><input id="q" type="search" placeholder="Find a task" spellcheck="false"></label>
-      <select id="proj" class="proj" aria-label="Project"></select>
-      <button class="nb newb" id="new">${ico('plus')}<span class="lbl">New task</span></button>
-      <nav id="views"></nav>
-      <a class="nb appr" href="approve/" title="Pictures waiting for your approval">${ico('check')}<span class="lbl">Approve art</span><span class="n" id="heldN"></span></a>
-      <a class="nb void" href="void/" title="The Void: your private idea dump">${ico('void')}<span class="lbl">The Void</span></a>
-      <div class="grow"></div>
-      <div class="foot"><span class="live" id="live" title="Connected"><i></i><span class="lbl">Live</span></span>
-        <button class="ib" id="bell" title="Phone notifications">${ico('bell')}</button><button class="ib" id="key" title="Set a password for the phone app">${ico('key')}</button><button class="ib" id="rf" title="Refresh">${ico('refresh')}</button><button class="ib" id="out" title="Sign out">${ico('out')}</button></div>
-      <div class="sub lbl who" id="who"></div>
-    </aside>
-    <main><div id="board"></div><p class="sub" id="status"></p></main>
+  app.innerHTML = `<studio-nav data-page="${view}"><div class="nowtools">
+      <select id="proj" aria-label="Filter by project"></select><input type="search" id="q" aria-label="Find a task" placeholder="Search">
+      <button class="make" id="new">+ New task</button></div></studio-nav>
+    <div id="compacttools"></div><main><h1 id="workspacetitle" class="sr-only"></h1><div id="board"></div>
+    <footer class="deskfoot"><p class="sub" id="status"></p><details class="account"><summary>Account</summary><div>
+      <span class="sub" id="who"></span><button id="bell">Phone alerts</button><button id="key">Set password</button>
+      <button id="rf">Refresh</button><button id="out">Sign out</button></div></details></footer></main>
     <div class="shade" id="shade"></div><aside class="drawer" id="drawer" aria-label="Task"></aside>`
   const $ = id => document.getElementById(id)
+  const tools = app.querySelector('.nowtools')
+  const compact = matchMedia('(max-width:1000px)')
+  const placeTools = () => {
+    const target = compact.matches ? $('compacttools') : app.querySelector('.studio-inner')
+    target.append(tools)
+  }
+  const nav = app.querySelector('studio-nav')
+  new ResizeObserver(() => {
+    document.documentElement.style.setProperty('--nav-height', nav.offsetHeight + 'px')
+  }).observe(nav)
+  nav.addEventListener('click', e => {
+    const a = e.target.closest('a')
+    if (a && a.hash && a.hash === location.hash && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      closeTask()
+      window.scrollTo(0, 0)
+    }
+  })
+  placeTools()
+  compact.addEventListener('change', placeTools)
   $('out').onclick = async () => { await sb.auth.signOut(); location.reload() }
   $('rf').onclick = () => load()
   setupBell($('bell'))
   $('key').onclick = setPassword
+  window.addEventListener('hashchange', () => {
+    closeTask()
+    view = dashboardView()
+    pref('view2', view)
+    renderBoard()
+    if (location.hash === '#history') document.getElementById('done-column')?.scrollIntoView({block:'start'})
+    else window.scrollTo(0, 0)
+  })
   $('new').onclick = newTask
-  $('mini').onclick = () => { const m = document.body.classList.toggle('mini'); pref('side', m ? 'min' : 'full') }
   $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); renderBoard() }
   $('proj').onchange = e => { project = e.target.value; pref('project', project); renderBoard() }
   $('shade').onclick = closeTask
@@ -450,14 +418,11 @@ async function setupBell(btn) {
 async function load() {
   const { data, error } = await sb.from('studio_tasks').select('*').order('updated_at', { ascending: false }).limit(200)
   const st = document.getElementById('status')
-  if (error) { document.getElementById('live').classList.add('off'); st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
-  document.getElementById('live').classList.remove('off'); tasks = data.map(norm); if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
+  if (error) { st.innerHTML = `<span class="err">Couldn't load tasks: ${esc(error.message)}</span>`; return }
+  tasks = data.map(norm); if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
   renderBoard()
   if (openId) renderTask(openId, true)
-  const heldCount = (q) => q.then(r => { const n = document.getElementById('heldN'); if (n && !r.error) n.textContent = r.count || ''; return r })
-  // new pictures only; older pictures held since 2026-11-18 wait on the approve page without counting here
-  heldCount(sb.from('studio_assets').select('id', { count: 'exact', head: true }).eq('status', 'held').is('legacy_status', null))
-    .then(r => { if (r.error) heldCount(sb.from('studio_assets').select('id', { count: 'exact', head: true }).eq('status', 'held')) })
+
 }
 
 function renderBoard() {
@@ -465,6 +430,8 @@ function renderBoard() {
   if (project !== 'all' && !projects.includes(project)) project = 'all'
   const ps = document.getElementById('proj')
   ps.innerHTML = ['all', ...projects].map(p => `<option value="${esc(p)}" ${p === project ? 'selected' : ''}>${p === 'all' ? 'All projects' : esc(p)}</option>`).join('')
+  document.querySelector('studio-nav').setPage(view)
+  document.getElementById('workspacetitle').textContent = view === 'board' ? 'Board' : 'Now'
   const vis = tasks.filter(t => (project === 'all' || t.project === project) && (!query || (t.title + ' ' + t.brief + ' ' + t.project).toLowerCase().includes(query)))
   const F = {
     spitz: t => t.status !== 'done' && t.turn === 'spitz',
@@ -472,30 +439,18 @@ function renderBoard() {
     claude: t => t.status !== 'done' && (grp(t.turn) === 'claude' || !t.turn),
     done: t => t.status === 'done'
   }
-  document.getElementById('views').innerHTML = VIEWS.map(([k, name]) => {
-    const n = k === 'board' || k === 'now' ? vis.filter(t => t.status !== 'done').length : vis.filter(F[k]).length
-    return `<button class="nb who-${k} ${view === k ? 'on' : ''}" data-v="${k}" title="${name}">${ico(k)}<span class="lbl">${name}</span><span class="n">${n || ''}</span></button>`
-  }).join('')
-  document.querySelectorAll('#views .nb').forEach(b => b.onclick = () => { view = b.dataset.v; pref('view2', view); renderBoard() })
   const card = (t, k) => `<button class="card who-${k === 'chatgpt' ? CLS(t.turn) : k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
         <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span class="tw">${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
-  const keyOf = t => F.done(t) ? 'done' : F.spitz(t) ? 'spitz' : F.chatgpt(t) ? 'chatgpt' : 'claude'
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
   const before = flipStart(b)
-  if (view === 'board') {
-    b.className = 'board'
-    b.innerHTML = ['spitz','chatgpt','claude','done'].map(k => {
-      const list = vis.filter(F[k]).slice(0, k === 'done' ? 20 : 100), name = VIEWS.find(v => v[0] === k)[1]
-      return `<section class="col who-${k}" data-k="${k}"><h2>${name} <span class="count">${list.length}</span></h2><div class="cb">${list.map(t => card(t, k)).join('') || emptyCol(k)}</div></section>`
-    }).join('')
-  } else {
-    const list = vis.filter(F[view]), name = VIEWS.find(v => v[0] === view)[1]
-    b.className = 'list who-' + view
-    b.innerHTML = `<h2 class="lh">${name} <span class="count">${list.length}</span></h2><div class="grid">${list.map(t => card(t, keyOf(t))).join('') || emptyCol(view)}</div>`
-  }
+  b.className = 'board'
+  b.innerHTML = Object.entries(boardColumns).map(([k,name]) => {
+    const list = vis.filter(F[k])
+    return `<section class="col who-${k}" id="${k}-column" data-k="${k}"><h2>${name} <span class="count">${list.length}</span></h2><div class="cb">${list.map(t => card(t,k)).join('') || emptyCol(k)}</div></section>`
+  }).join('')
   flipEnd(b, before)
-  boardThumbs(view === 'board' ? vis.filter(t => !F.done(t) || vis.filter(F.done).indexOf(t) < 20) : vis.filter(F[view]))
+  boardThumbs(vis)
   document.querySelectorAll('.card').forEach(c => c.onclick = () => renderTask(c.dataset.id))
 }
 
@@ -621,104 +576,88 @@ function nowState(t, msgs, x) {
   return st
 }
 
-let nowSeq = 0, confirmDone = null
-const qrDraft = {} // unsent replies typed on the Now cards, kept across refreshes
+let nowSeq = 0
 async function renderNow(vis) {
   const b = document.getElementById('board'), seq = ++nowSeq
   const active = vis.filter(t => t.status !== 'done').sort((a, c) => ((c.turn === 'spitz') - (a.turn === 'spitz')) || (new Date(c.updated_at) - new Date(a.updated_at)))
   const done = vis.filter(t => t.status === 'done').sort((a, c) => new Date(c.updated_at) - new Date(a.updated_at)).slice(0, 5)
   const ids = active.map(t => t.id)
-  let msgs = [], assets = [], extra = {}, health = null
+  let msgs = [], extra = {}, health = null
+  const heldQuery = () => {
+    const q = sb.from('studio_assets').select('id,task_id,file_name,original_name,path').eq('status','held')
+    return project === 'all' ? q : q.in('task_id', tasks.filter(t => t.project === project).map(t => t.id))
+  }
+  const recentHeld = async () => {
+    if (!TT) return { data:[] }
+    const result = await heldQuery().is('legacy_status',null).order('created_at',{ascending:false}).limit(60)
+    if (result.error?.code === '42703') return heldQuery().order('created_at',{ascending:false}).limit(60)
+    return result
+  }
+  const [heldResult, n, m] = await Promise.all([
+    recentHeld(), sb.rpc('studio_now'), ids.length ? sb.from('studio_messages').select('task_id,seq,author,kind,body,refs,set_turn,set_status,created_at').in('task_id',ids).order('seq',{ascending:false}).limit(300) : {data:[]}
+  ])
+  msgs = (m.data || []).map(norm)
   if (ids.length) {
-    const [m, a, n] = await Promise.all([
-      sb.from('studio_messages').select('task_id,seq,author,kind,body,refs,set_turn,set_status,created_at').in('task_id', ids).order('seq', { ascending: false }).limit(300),
-      sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('task_id', ids).order('created_at', { ascending: false }).limit(40),
-      sb.rpc('studio_now')])
-    msgs = (m.data || []).map(norm); assets = a.data || []
     if (!n.error && n.data) { (n.data.tasks || []).forEach(x => extra[x.id] = x); health = n.data.health }
     else {
       // before the database update: ChatGPT's runs are still readable directly
       const r = await sb.from('studio_worker_runs').select('task_id,status,task_version,created_at,finished_at,detail').in('task_id', ids).order('id', { ascending: false }).limit(20)
       ;(r.data || []).forEach(x => { if (!extra[x.task_id]) extra[x.task_id] = { run: { status: x.status, version: x.task_version, at: x.created_at, detail: x.detail }, noWake: true } })
     }
-    // a referenced image from another task (art passed along) counts too
-    const refd = [...new Set(msgs.flatMap(m => (m.refs || []).filter(r => r.type === 'asset').map(r => r.id)))].filter(id => !assets.some(x => x.id === id))
-    if (refd.length) { const q = await sb.from('studio_assets').select('id,task_id,file_name,width,height,path,created_at').in('id', refd); assets = assets.concat(q.data || []) }
-  } else {
-    const n = await sb.rpc('studio_now'); if (!n.error && n.data) health = n.data.health
-  }
-  const url = await signedUrls(assets)
+  } else if (!n.error && n.data) health = n.data.health
   if (seq !== nowSeq || view !== 'now') return
-  const byId = Object.fromEntries(assets.map(a => [a.id, a]))
-  const latestImg = (t, tm) => {
-    for (const m of tm) for (const r of (m.refs || [])) if (r.type === 'asset' && byId[r.id]) return byId[r.id]
-    return assets.find(a => a.task_id === t.id) || (t.refs || []).map(r => byId[r.id]).find(Boolean) || null
+  const labels = new Map(tasks.map(t => [t.id, t]))
+  const held = heldResult.data || []
+  const relevantArt = held.filter(a => {
+    const parent = labels.get(a.task_id)
+    if (project !== 'all' && parent?.project !== project) return false
+    return !query || [a.original_name, a.file_name, parent?.project, parent?.title, parent?.brief].some(v => v?.toLowerCase().includes(query))
+  })
+  const artUrl = await signedUrls(relevantArt)
+  if (seq !== nowSeq || view !== 'now') return
+  const decisions = relevantArt.map(a => {
+    const t = labels.get(a.task_id)
+    return { thumb:artUrl(a.id), title:a.original_name || a.file_name, project:t?.project || 'Art review', reason:t?.title || 'Picture ready for your decision', action:'Review picture', href:'approve/?id=' + encodeURIComponent(a.id) }
+  })
+  const work = []
+  nowLive = false
+  for (const t of active) {
+    const tm = msgs.filter(m => m.task_id === t.id)
+    const state = nowState(t, tm, extra[t.id])
+    if (state.live) nowLive = true
+    const item = { title:t.title, project:t.project, id:t.id, reason:tm[0]?.kind === 'question' ? tm[0].body.split('\n')[0].slice(0,180) : state.detail || state.label, action:'Open task' }
+    if (t.status === 'blocked' || state.cls === 'bad') {
+      decisions.push({ ...item, action:state.retry ? 'Review stopped run' : 'Resolve task' })
+    } else if (t.turn === 'spitz') {
+      decisions.push({ ...item, action:state.pr ? 'Review PR' : tm[0]?.kind === 'question' ? 'Answer question' : 'Review task', href:state.pr })
+    } else if (t.turn === 'chatgpt_chat') {
+      decisions.push({ ...item, reason:'Your chat is waiting for you to start it.', action:'Open in ChatGPT', href:startUrl('chatgpt', t) })
+    } else {
+      work.push({t, state})
+    }
   }
-  let anyLive = false
-  const cardHtml = t => {
-    const tm = msgs.filter(m => m.task_id === t.id), x = extra[t.id] && !(extra[t.id].noWake && t.turn === 'claude') ? extra[t.id] : null
-    const s = nowState(t, tm, x), img = latestImg(t, tm), k = CLS(t.turn)
-    if (s.live) anyLive = true
-    const turn = t.status === 'blocked' ? 'Blocked' : t.turn === 'spitz' ? 'Your turn' : `${WHO[t.turn] || 'Claude worker'}'s turn`
-    const three = tm.slice(0, 3) // newest first
-    const prNum = s.pr ? (s.pr.match(/\/pull\/(\d+)/) || [,''])[1] : ''
-    return `<article class="now who-${k}" data-id="${t.id}">
-      <div class="nh"><span class="pill">${esc(turn)}</span><span class="sub">${esc(t.project)} · last activity ${ago(t.updated_at)} (${clock(t.updated_at)})</span></div>
-      <h2 class="nt">${esc(t.title)}</h2>
-      <div class="state ${s.cls}"><b>${esc(s.label)}</b>${s.detail ? ' · ' + esc(s.detail) : ''}</div>
-      ${s.next ? `<div class="next ${t.turn === 'spitz' || s.cls === 'bad' || s.cls === 'warn' ? 'hot' : ''}">Next: ${esc(s.next)}</div>` : ''}
-      <div class="nb2 ${img ? '' : 'noimg'}">
-        ${img ? `<a class="art" href="${url(img.id) || '#'}" target="_blank" rel="noopener">${url(img.id) ? `<img src="${url(img.id)}" alt="${esc(img.file_name)}">` : ''}<span class="cap">${esc(img.file_name.replace(/^[0-9a-f]{8}-/, ''))} · ${img.width}x${img.height}</span></a>` : ''}
-        <div class="feed">${three.map(m => `<div class="msg who-${CLS(m.author)}"><div class="h"><span class="who">${esc(WHO[m.author] || m.author)}</span><span>${ago(m.created_at)}</span>${m.set_turn ? `<span>→ ${esc(WHO[m.set_turn] || m.set_turn)}</span>` : ''}${m.set_status ? `<span>· ${esc(m.set_status)}</span>` : ''}</div><div class="pre clip">${linkify(m.body)}</div></div>`).join('') || '<p class="sub">No messages yet. The brief is in the full history.</p>'}
-          <button class="lnk" data-open="${t.id}">Full history${tm.length ? ` (${tm.length} message${tm.length === 1 ? '' : 's'})` : ''} →</button></div>
-      </div>
-      <div class="qr"><textarea data-qr="${t.id}" placeholder="Reply to ChatGPT and Claude..." aria-label="Reply on this task"></textarea>
-        <div class="row"><button class="btn" data-qa="note" data-t="${t.id}" title="Saves it on the task without waking anyone">Send note</button><button class="btn gptw" data-qa="openai_worker" data-t="${t.id}">Send + ChatGPT worker</button>${IDV >= 2 ? `<button class="btn gpt" data-qa="chatgpt_chat" data-t="${t.id}" title="Nothing starts by itself">Send + my ChatGPT chat</button>` : ''}<button class="btn cl" data-qa="claude" data-t="${t.id}">Send + Claude worker</button><span class="sub" data-qs="${t.id}"></span></div></div>
-      <div class="acts">${s.pr ? `<a class="btn primary" href="${esc(s.pr)}" target="_blank" rel="noopener">Open PR ${esc(prNum)}</a>` : ''}
-        ${s.retry ? `<button class="btn gpt" data-retry="${s.retry}" data-t="${t.id}">Retry</button>` : s.run ? `<button class="btn gpt" data-run="${t.id}">Run ChatGPT now</button>` : ''}
-        <button class="btn dn" data-done="${t.id}">${confirmDone === t.id ? 'Tap again to mark done' : 'Mark done'}</button><span class="sub" data-msg="${t.id}"></span></div>
-    </article>`
+  const cap = (title, count, dateLabel) => `<div class="capline"><h2>${title}</h2><span class="num">${count}</span>${dateLabel ? `<span class="date">${esc(dateLabel)}</span>` : ''}</div>`
+  const entry = (d, i) => {
+    const cls = 'decision' + (i ? ' secondary' : '')
+    const attrs = d.href ? `href="${esc(d.href)}" ${d.href.startsWith('https://') ? 'target="_blank" rel="noopener"' : ''}` : `data-open="${esc(d.id)}"`
+    const tag = d.href ? 'a' : 'button'
+    return `<article class="entry"><div class="entrybody">${d.thumb ? `<img class="entrythumb" src="${esc(d.thumb)}" alt="">` : ''}<div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p></div></div><${tag} class="${cls}" ${attrs}>${esc(d.action)}</${tag}></article>`
   }
-  const h = health, jobsOk = h && (h.jobs || []).every(j => j.ok !== false)
-  const healthHtml = !h ? '' : `<p class="health ${h.phones && jobsOk ? '' : 'bad'}">Phone alerts: ${h.phones ? `${h.phones} phone${h.phones > 1 ? 's' : ''}` : '<b>no phone saved, tap the bell on your phone</b>'}${h.last_push ? ` · last sent ${clock(h.last_push.at)} ${h.last_push.code === 200 ? '✓' : '<b>failed</b>'}` : ''} · ${jobsOk ? 'checks running' : '<b>a background check failed</b>'}</p>`
-  nowLive = anyLive
-  const wasNow = b.className === 'nowv'
-  b.className = 'nowv'
-  const html = `<h2 class="lh">Now <span class="count">${active.length}</span></h2>
-    ${active.length ? `<div class="nowgrid n${Math.min(active.length, 2)}">${active.map(cardHtml).join('')}</div>` : `<div class="idle"><p>Nothing in progress.</p><button class="btn primary" id="new2">+ New task</button></div>`}
-    <h2 class="lh dn2">Recently finished</h2>
-    <div class="recent">${done.map(t => `<button class="row1" data-open="${t.id}"><span class="t">${esc(t.title)}</span><span class="sub">${esc(t.project)} · ${ago(t.updated_at)}</span></button>`).join('') || '<div class="empty">nothing yet</div>'}
-      <button class="lnk" id="older">Older history →</button></div>${healthHtml}`
-  if (wasNow && b.dataset.html === html) return
-  if (wasNow && document.activeElement && document.activeElement.matches('textarea[data-qr]')) return // typing: refresh after
-  const y = window.scrollY, by = b.scrollTop
-  b.dataset.html = html; b.innerHTML = html
-  if (y) window.scrollTo(0, y); if (by) b.scrollTop = by
-  b.querySelectorAll('[data-open]').forEach(e => e.onclick = () => renderTask(e.dataset.open))
-  b.querySelectorAll('textarea[data-qr]').forEach(ta => { ta.value = qrDraft[ta.dataset.qr] || ''; ta.oninput = () => { qrDraft[ta.dataset.qr] = ta.value } })
-  b.querySelectorAll('[data-qa]').forEach(e => e.onclick = () => {
-    const id = e.dataset.t, t = tasks.find(x => x.id === id); if (!t) return
-    sendMsg(t, e.dataset.qa, b.querySelector(`textarea[data-qr="${id}"]`), b.querySelector(`[data-qs="${id}"]`), b.querySelectorAll(`[data-qa][data-t="${id}"]`), () => { delete qrDraft[id] })
-  })
-  b.querySelector('#older').onclick = () => { view = 'done'; pref('view2', view); renderBoard() }
-  const n2 = b.querySelector('#new2'); if (n2) n2.onclick = newTask
-  b.querySelectorAll('[data-run]').forEach(e => e.onclick = async () => {
-    e.disabled = true; const out = b.querySelector(`[data-msg="${e.dataset.run}"]`)
-    const { data, error } = await sb.rpc('studio_wake_worker', { p_task_id: e.dataset.run })
-    out.textContent = error ? error.message : data && data.woken ? 'ChatGPT is on it.' : ((data && data.reason) || 'Not woken.')
-  })
-  b.querySelectorAll('[data-retry]').forEach(e => e.onclick = () => retryRun(e, b.querySelector(`[data-msg="${e.dataset.t}"]`)))
-  b.querySelectorAll('[data-done]').forEach(e => e.onclick = async () => {
-    const id = e.dataset.done, t = tasks.find(x => x.id === id)
-    if (confirmDone !== id) { confirmDone = id; e.textContent = 'Tap again to mark done'; setTimeout(() => { if (confirmDone === id) { confirmDone = null; e.textContent = 'Mark done' } }, 4000); return }
-    confirmDone = null; e.disabled = true; busy = true
-    const { data, error } = await sb.rpc('studio_post_message', { p_task_id: id, p_request_key: key(), p_kind: 'decision', p_body: 'Marked done.', p_refs: [], p_set_status: 'done', p_expected_version: t.version })
-    busy = false
-    const out = b.querySelector(`[data-msg="${id}"]`)
-    if (error) { out.innerHTML = `<span class="err">${esc(error.message)}</span>`; e.disabled = false; return }
-    if (data && data.conflict) { out.innerHTML = '<span class="err">It changed just now. Here is the latest.</span>' }
-    await load()
-  })
+  const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task history</button></div></details>`
+  const finished = t => `<button class="finished" data-open="${esc(t.id)}"><span aria-hidden="true" class="tick">✓</span><span class="rowtext"><strong>${esc(t.title)}</strong><span class="stamp">${esc(t.project)} · ${ago(t.updated_at)}</span></span></button>`
+  const expanded = [...b.querySelectorAll('details[data-work][open]')].map(el => el.dataset.work)
+  const date = new Date().toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'})
+  const html = `<section>${cap('Needs you',decisions.length,date)}<div class="inbox">${decisions.map(entry).join('') || '<p class="quiet">No tasks need your attention in this view.</p>'}
+    ${heldResult.error ? '<p class="quiet">Art queue unavailable here. <a href="approve/">Open art review</a></p>' : ''}</div></section>
+    <div class="sectiongrid"><section>${cap('In progress',work.length)}<div class="sheet">${work.map(progress).join('') || '<p class="quiet">No other work in progress.</p>'}</div></section>
+    <section>${cap('Recently finished',done.length)}<div class="sheet">${done.map(finished).join('') || '<p class="quiet">No finished tasks in this view.</p>'}</div><a class="lnk archive" href="#history">View history</a></section></div>
+    ${health && (health.phones === 0 || health.jobs?.some(j => j.ok === false) || (health.last_push && health.last_push.code !== 200)) ? '<p class="health bad">Phone alerts or background checks need attention. See Account below.</p>' : ''}`
+  if (b.className === 'nowv' && b.dataset.html === html) return
+  const focused = b.contains(document.activeElement) ? document.activeElement : null
+  b.className = 'nowv'; b.innerHTML = html; b.dataset.html = html
+  b.querySelectorAll('[data-work]').forEach(el => { el.open = expanded.includes(el.dataset.work) })
+  b.querySelectorAll('[data-open]').forEach(btn => btn.onclick = () => renderTask(btn.dataset.open))
+  if (focused?.dataset.open) [...b.querySelectorAll('[data-open]')].find(el => el.dataset.open === focused.dataset.open)?.focus({preventScroll:true})
 }
 
 // Retry a stopped ChatGPT run: the database keeps saved pictures and only reruns the unfinished step

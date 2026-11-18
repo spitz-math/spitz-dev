@@ -8,8 +8,6 @@
 <link rel="icon" type="image/png" href="burger_void_64.png">
 <link rel="apple-touch-icon" href="../icon_180.png">
 <meta name="theme-color" content="#0B0C14">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script src="voice.js"></script>
 <style>
@@ -125,8 +123,11 @@ h1 b{ color:var(--am); }
 @media (prefers-reduced-motion:reduce){ .portal .ring, .portal.gulp img, .bh .flow, .quote.legendary.flare{ animation:none; } }
 @media (max-width:520px){ .filters{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:-16px; margin-right:-16px; padding:0 16px 4px; scroll-padding:0 16px; } .filters::-webkit-scrollbar{ display:none; } h1{ font-size:24px; } .portal{ width:104px; height:104px; } .bh{ width:560px; top:70px; } .far{ width:240px; right:-60px; bottom:-20px; opacity:.55; } .go .btn.primary{ flex:1; } }
 </style>
+<link rel="stylesheet" href="../studio-nav.css">
+<script src="../studio-nav.js"></script>
 </head>
 <body>
+<studio-nav data-page="void"></studio-nav>
 <div class="neb" aria-hidden="true"></div><canvas class="sky" id="sky" aria-hidden="true"></canvas>
 <svg class="far" viewBox="-170 -90 340 180" aria-hidden="true" focusable="false"><g transform="rotate(14)">
     <circle r="70" fill="url(#bhHalo2)"/><path d="M-30 0 A30 26 0 0 1 30 0" fill="none" stroke="#AD5CFF" stroke-width="1" opacity=".5"/>
@@ -210,7 +211,7 @@ async function start() {
 }
 
 function shell() {
-  app.innerHTML = `<header><a class="back" href="../">← spitz.dev</a><img class="mark" src="burger_void_192.png" alt="" width="40" height="32"><span class="sub" id="mode"></span></header>
+  app.innerHTML = `
     <section class="hero" id="hero"><svg class="bh" viewBox="-450 -225 900 450" aria-hidden="true" focusable="false">
         <defs>
           <radialGradient id="bhHalo"><stop offset="0" stop-color="#AD5CFF" stop-opacity=".38"/><stop offset=".3" stop-color="#AD5CFF" stop-opacity=".16"/><stop offset=".6" stop-color="#7A3FE0" stop-opacity=".06"/><stop offset="1" stop-color="#AD5CFF" stop-opacity="0"/></radialGradient>
@@ -260,7 +261,7 @@ function shell() {
     <div class="filters" id="filters" role="group" aria-label="Show category"></div>
     <div id="list"></div>
     <p class="err" id="err"></p>
-    <p class="later">Deposit your thoughts. Reclaim your sanity.<br>// sending an idea to ChatGPT or Claude: coming later. For now, use Copy.</p>`
+    <p class="sub" id="mode"></p><p class="later">Deposit your thoughts. Reclaim your sanity.<br>// sending an idea to ChatGPT or Claude: coming later. For now, use Copy.</p>`
   document.getElementById('mode').textContent = preview ? 'local preview' : 'private · synced'
   const body = document.getElementById('body'), form = document.getElementById('cap')
   body.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit() } })

@@ -8,8 +8,6 @@
 <link rel="icon" type="image/png" href="../burger_line_64.png">
 <link rel="apple-touch-icon" href="../icon_180.png">
 <meta name="theme-color" content="#0B0C14">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <style>
 /* spitz.dev approval page (M2). Kody decides on ONE exact stored file here, signed in himself.
@@ -67,9 +65,11 @@ textarea{ width:100%; min-height:84px; background:var(--panel2); border:1px soli
 input[type=range]{ flex:1; min-width:120px; accent-color:var(--orange); }
 .history li{ margin:4px 0; }
 </style>
+<link rel="stylesheet" href="../studio-nav.css">
+<script src="../studio-nav.js"></script>
 </head>
 <body>
-<header><img src="../burger_line_64.png" alt=""><span>spitz<b>.dev</b> · approve</span><span class="grow"></span><a class="sub" href="./">waiting list</a><a class="sub" href="../">board</a></header>
+<studio-nav data-page="art"></studio-nav>
 <main id="app"><p class="sub">Loading…</p></main>
 <script>
 const STUDIO = { supabaseUrl: 'https://klbbcwlddgtsolvsxvwe.supabase.co', supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9', bucket: 'studio-assets' }
@@ -154,6 +154,7 @@ async function review(id) {
   document.title = `spitz.dev · ${a.original_name || 'picture'}`
 
   app.innerHTML = `
+    <p class="sub"><a href="./">All pending art</a></p>
     <h1>${esc(a.original_name || a.file_name)}</h1>
     <div class="row"><span class="badge ${esc(a.status)}">${esc(STATUS[a.status] || a.status)}</span>
       <span class="sub">${a.width}x${a.height} · made by ${esc(WHO[a.made_by] || a.made_by || 'unknown')} · ${ago(a.created_at)}</span></div>
