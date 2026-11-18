@@ -454,7 +454,10 @@ async function load() {
   document.getElementById('live').classList.remove('off'); tasks = data.map(norm); if (!document.getElementById('sp')) st.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) + '. Refreshes every 20 seconds.'
   renderBoard()
   if (openId) renderTask(openId, true)
-  sb.from('studio_assets').select('id', { count: 'exact', head: true }).eq('status', 'held').then(r => { const n = document.getElementById('heldN'); if (n && !r.error) n.textContent = r.count || '' })
+  const heldCount = (q) => q.then(r => { const n = document.getElementById('heldN'); if (n && !r.error) n.textContent = r.count || ''; return r })
+  // new pictures only; older pictures held since 2026-11-18 wait on the approve page without counting here
+  heldCount(sb.from('studio_assets').select('id', { count: 'exact', head: true }).eq('status', 'held').is('legacy_status', null))
+    .then(r => { if (r.error) heldCount(sb.from('studio_assets').select('id', { count: 'exact', head: true }).eq('status', 'held')) })
 }
 
 function renderBoard() {
