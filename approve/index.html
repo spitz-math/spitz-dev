@@ -143,9 +143,12 @@ async function review(id) {
     const { data: p } = await sb.from('studio_assets').select('*').eq('id', chain[0].parent_id).maybeSingle()
     if (!p) break; chain.unshift(p)
   }
-  const [pics, taskQ, apQ] = await Promise.all([Promise.all(chain.map(loadPic)),
+  const [pics, taskQ, apQ, prQ] = await Promise.all([Promise.all(chain.map(loadPic)),
     /^[0-9a-f-]{36}$/.test(a.task_id) ? sb.from('studio_tasks').select('id,title,turn,status,project').eq('id', a.task_id).maybeSingle() : { data: null },
-    sb.from('studio_approvals').select('*').eq('asset_id', a.id).order('id', { ascending: false })])
+    sb.from('studio_approvals').select('*').eq('asset_id', a.id).order('id', { ascending: false }),
+    a.parent_id ? sb.from('studio_proofs').select('kind,pixel_preserving,summary,details,asset_sha256,at').eq('asset_id', a.id).order('id', { ascending: false }).limit(1) : { data: [] }])
+  // M3 pixel proof (computed by the server from the two stored files). Older databases have no proofs table: then nothing shows.
+  const proof = ((prQ && !prQ.error && prQ.data) || []).find(x => x.asset_sha256 === a.sha256)
   const me = pics.at(-1), parent = pics.length > 1 ? pics.at(-2) : null, task = taskQ.data
   const open = ['held', 'draft', 'failed'].includes(a.status)
   document.title = `spitz.dev · ${a.original_name || 'picture'}`
@@ -172,10 +175,13 @@ async function review(id) {
       <dt>file</dt><dd>${esc(a.mime_type)} · ${me.bytes} bytes</dd>
       ${a.note ? `<dt>maker's note</dt><dd>${esc(a.note)}</dd>` : ''}
       ${parent ? `<dt>made from</dt><dd><a href="?id=${esc(parent.a.id)}">${esc(parent.a.original_name || parent.a.id)}</a> · ${esc(STATUS[parent.a.status] || parent.a.status)}</dd>` : ''}
+      ${proof ? `<dt>pixel proof</dt><dd class="${proof.pixel_preserving ? 'ok' : ''}">${proof.pixel_preserving ? '✓ ' : ''}${esc(proof.summary)}${proof.pixel_preserving ? '' : ' <span class="sub">(This is a fact about pixels, not a judgement: the look is your call.)</span>'}</dd>` : ''}
     </dl>
     <p class="sub">Exact pixel equality can be checked by code. Looking alike can't be proven by a score, and whether you like it is your call.</p>
     <h2>DECISIONS ON THIS FILE</h2>
-    <ul class="history sub">${(apQ.data || []).map(h => `<li>${esc(h.verdict)} · ${ago(h.at)} · ${esc(h.method || h.by_app)}${h.device ? ' · ' + esc(h.device) : ''}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>
+    <ul class="history sub">${(apQ.data || []).map(h => h.method === 'proof'
+      ? `<li>approved automatically by pixel proof · ${ago(h.at)} · ${esc(h.note || '')}</li>`
+      : `<li>${esc(h.verdict)} by you · ${ago(h.at)} · ${esc(h.method || h.by_app)}${h.device ? ' · ' + esc(h.device) : ''}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>
     <div class="decide" id="decide"></div>`
 
   // waiting-on-you banner for a task parked on the ChatGPT chat
@@ -250,7 +256,8 @@ async function review(id) {
 
   // the decision
   const dec = document.getElementById('decide')
-  if (!open) { dec.innerHTML = `<p class="sub">${a.status === 'rejected' ? 'This file was rejected and can never be used. A fix is a new file.' : 'Already decided. Approved files never change.'}</p>`; return }
+  if (!open) { dec.innerHTML = `<p class="sub">${a.status === 'rejected' ? 'This file was rejected and can never be used. A fix is a new file.' : (apQ.data || [])[0]?.method === 'proof' ? 'Approved automatically: it keeps every pixel of the approved picture it was made from. Approved files never change.' : 'Already decided. Approved files never change.'}</p>`; return }
+  if (parent && !['approved', 'ready'].includes(parent.a.status)) { dec.innerHTML = `<p class="sub">Approve <a href="?id=${esc(parent.a.id)}">the picture this was made from</a> first.</p>`; return }
   if (!me.match) { dec.innerHTML = '<p class="err">The bytes here don\'t match the stored checksum, so this file can\'t be approved. Tell Claude.</p>'; return }
   dec.innerHTML = `<div id="form"></div><div class="row"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes">Changes</button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
   dec.querySelectorAll('[data-v]').forEach(b => b.onclick = () => decide(b.dataset.v))
