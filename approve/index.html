@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>spitz.dev · approve</title>
+<link rel="icon" type="image/png" href="../burger_line_64.png">
+<link rel="apple-touch-icon" href="../icon_180.png">
+<meta name="theme-color" content="#0B0C14">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
+<style>
+/* spitz.dev approval page (M2). Kody decides on ONE exact stored file here, signed in himself.
+   Everything shown is drawn in this browser from the bytes in storage, after checking their SHA-256. */
+:root{ --bg:#0B0C14; --panel:#161822; --panel2:#1D202E; --line:#35394A; --ink:#F2F0F8; --muted:#979BAC;
+  --orange:#FF892E; --orange2:#FFAD74; --chatgpt:#19CFF5; --chatgpt-text:#9BEAFF; --claude:#EF3B36; --claude-text:#FF4F4F;
+  --good:#8ED8B1; --warn:#E9BD70; --bad:#FF8293; --link:#D4DCF4; }
+*{ box-sizing:border-box; }
+html,body{ margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 'JetBrains Mono',ui-monospace,monospace; overflow-x:clip; }
+button,input,textarea{ font:inherit; color:inherit; }
+a{ color:var(--link); }
+header{ display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--orange); position:sticky; top:0; background:var(--bg); z-index:5; }
+header img{ height:26px; } header b{ color:var(--orange); } header .grow{ flex:1; }
+main{ max-width:980px; margin:0 auto; padding:14px 16px 120px; }
+h1{ font-size:17px; margin:4px 0 6px; overflow-wrap:anywhere; }
+h2{ font-size:13px; color:var(--muted); margin:18px 0 8px; font-weight:600; }
+.sub{ color:var(--muted); font-size:12px; }
+.err{ color:var(--bad); }
+.ok{ color:var(--good); }
+.btn{ background:transparent; border:1px solid var(--line); border-radius:6px; padding:8px 12px; cursor:pointer; }
+.btn:hover{ border-color:var(--orange); color:var(--orange2); }
+.btn.on{ border-color:var(--orange); color:var(--orange); }
+.btn:disabled{ opacity:.45; cursor:default; }
+.row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.badge{ display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:4px; padding:1px 6px; color:var(--muted); }
+.badge.held{ color:var(--warn); border-color:var(--warn); }
+.badge.approved, .badge.ready{ color:var(--good); border-color:var(--good); }
+.badge.rejected, .badge.failed{ color:var(--bad); border-color:var(--bad); }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; margin:10px 0; }
+.chain{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; padding-bottom:4px; }
+.step{ flex:0 0 auto; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:8px; min-width:120px; cursor:pointer; text-align:left; }
+.step.me{ border:2px solid var(--orange); }
+.step canvas{ display:block; margin:4px 0; image-rendering:pixelated; max-width:180px; max-height:90px; }
+.arrow{ align-self:center; color:var(--muted); }
+.stage{ border-radius:6px; overflow:auto; max-width:100%; padding:12px; display:flex; justify-content:center; align-items:center; min-height:120px; }
+.stage canvas{ image-rendering:pixelated; image-rendering:crisp-edges; display:block; }
+.bg-checker{ background:repeating-conic-gradient(#2a2d3b 0 25%, #1c1e29 0 50%) 0 0/16px 16px; }
+.bg-dark{ background:#000; } .bg-light{ background:#e8e6ee; } .bg-floor{ background:#3a3442; }
+.native{ display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+.native img{ image-rendering:pixelated; display:block; }
+.facts{ display:grid; grid-template-columns:auto 1fr; gap:2px 12px; font-size:12px; }
+.facts dt{ color:var(--muted); } .facts dd{ margin:0; overflow-wrap:anywhere; }
+.need{ border:2px solid var(--chatgpt); border-radius:8px; padding:10px 12px; margin:10px 0; color:var(--chatgpt-text); }
+.need b{ color:var(--ink); }
+.decide{ position:sticky; bottom:0; background:var(--bg); border-top:1px solid var(--line); padding:10px 0 14px; margin-top:16px; }
+.decide .big{ flex:1 1 30%; min-width:96px; padding:13px 10px; font-weight:700; font-size:15px; }
+.big.ap{ border-color:var(--good); color:var(--good); } .big.ap:hover{ background:var(--good); color:#000; }
+.big.ch{ border-color:var(--warn); color:var(--warn); } .big.ch:hover{ background:var(--warn); color:#000; }
+.big.rj{ border-color:var(--bad); color:var(--bad); } .big.rj:hover{ background:var(--bad); color:#000; }
+textarea{ width:100%; min-height:84px; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:8px; margin:8px 0; }
+.q{ display:flex; gap:12px; align-items:center; padding:10px; background:var(--panel); border:1px solid var(--line); border-radius:8px; margin:8px 0; text-decoration:none; color:inherit; }
+.q img{ width:72px; height:72px; object-fit:contain; image-rendering:pixelated; background:repeating-conic-gradient(#2a2d3b 0 25%, #1c1e29 0 50%) 0 0/12px 12px; border-radius:4px; flex:0 0 auto; }
+.login{ max-width:380px; margin:40px auto; }
+.login input{ width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:9px; margin:6px 0; }
+input[type=range]{ flex:1; min-width:120px; accent-color:var(--orange); }
+.history li{ margin:4px 0; }
+</style>
+</head>
+<body>
+<header><img src="../burger_line_64.png" alt=""><span>spitz<b>.dev</b> · approve</span><span class="grow"></span><a class="sub" href="./">waiting list</a><a class="sub" href="../">board</a></header>
+<main id="app"><p class="sub">Loading…</p></main>
+<script>
+const STUDIO = { supabaseUrl: 'https://klbbcwlddgtsolvsxvwe.supabase.co', supabaseKey: 'sb_publishable_k0ZE76Yc9hnXs0-8hwV0sQ_lHFFjzt9', bucket: 'studio-assets' }
+const app = document.getElementById('app')
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))
+const ago = t => { const s = (Date.now() - new Date(t)) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60) + ' min ago'; if (s < 86400) return Math.floor(s/3600) + ' h ago'; return new Date(t).toLocaleString() }
+const WHO = { spitz:'you', chatgpt_chat:'your ChatGPT chat', openai_worker:'the ChatGPT worker', claude:'Claude', claude_thread:'a Claude thread', unknown:'unknown' }
+const STATUS = { held:'Waiting for you', approved:'Approved', ready:'Approved + checked', rejected:'Rejected', failed:'Check failed', draft:'Older picture (before approvals)' }
+const params = new URLSearchParams(location.search)
+const ID = params.get('id'), VIA = params.get('via') === 'push' ? 'push' : 'spitz_dev_page'
+const hex = b => [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')
+const device = () => { const u = navigator.userAgent
+  const os = /iPhone/.test(u) ? 'iPhone' : /iPad/.test(u) ? 'iPad' : /Android/.test(u) ? 'Android' : /Windows/.test(u) ? 'Windows' : /Mac OS X/.test(u) ? 'Mac' : /CrOS/.test(u) ? 'Chromebook' : 'device'
+  const br = /CriOS|Chrome\//.test(u) ? 'Chrome' : /FxiOS|Firefox\//.test(u) ? 'Firefox' : /Edg\//.test(u) ? 'Edge' : /Safari\//.test(u) ? 'Safari' : 'browser'
+  return `${os} ${br}${matchMedia('(display-mode: standalone)').matches || navigator.standalone ? ' (home-screen app)' : ''}` }
+let sb
+
+if (!window.supabase) app.innerHTML = '<p class="err">Could not load sign-in. Check your connection and reload.</p>'
+else start()
+
+async function start() {
+  sb = window.supabase.createClient(STUDIO.supabaseUrl, STUDIO.supabaseKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } })
+  const { data: { session } } = await sb.auth.getSession()
+  if (!session) return signIn()
+  try { ID ? await review(ID) : await queue() } catch (e) { app.innerHTML = `<p class="err">${esc(e.message || e)}</p>` }
+}
+
+function signIn() {
+  app.innerHTML = `<div class="login"><h1>Sign in to approve</h1>
+    <p class="sub">Approvals only count from your own sign-in here. ChatGPT and Claude can't approve.</p>
+    <form id="pf"><input id="em" type="email" required autocomplete="username" placeholder="email">
+      <input id="pw" type="password" autocomplete="current-password" placeholder="password">
+      <div class="row"><button class="btn on" type="submit">sign in</button><button class="btn" type="button" id="ml">email me a link instead</button></div></form>
+    <p class="sub" id="say"></p></div>`
+  const say = document.getElementById('say'), em = () => document.getElementById('em').value.trim()
+  document.getElementById('pf').onsubmit = async e => { e.preventDefault()
+    const { error } = await sb.auth.signInWithPassword({ email: em(), password: document.getElementById('pw').value })
+    if (error) { say.textContent = error.message; say.className = 'err'; return } location.reload() }
+  document.getElementById('ml').onclick = async () => {
+    if (!em()) { say.textContent = 'Type your email first.'; say.className = 'err'; return }
+    const { error } = await sb.auth.signInWithOtp({ email: em(), options: { emailRedirectTo: location.href, shouldCreateUser: false } })
+    say.textContent = error ? error.message : 'Check your email and open the link on this device.'; say.className = error ? 'err' : 'sub' }
+}
+
+// Load the stored bytes and check them against the recorded SHA-256 before showing anything.
+async function loadPic(a) {
+  const dl = await sb.storage.from(STUDIO.bucket).download(a.path)
+  if (dl.error || !dl.data) throw new Error(`Could not open the stored file for ${a.original_name || a.id}: ${dl.error ? dl.error.message : 'missing'}`)
+  const buf = await dl.data.arrayBuffer()
+  const sha = hex(await crypto.subtle.digest('SHA-256', buf))
+  const url = URL.createObjectURL(new Blob([buf], { type: a.mime_type }))
+  const img = new Image(); img.src = url; await img.decode()
+  return { a, sha, match: sha === a.sha256 && buf.byteLength === a.size_bytes, img, url, bytes: buf.byteLength }
+}
+const kind = (a, i, n) => a.anim ? 'Animation' : i === 0 && n > 1 ? 'Original' : a.parent_id ? 'Converted' : 'Picture'
+const fitScale = (w, h, maxW, maxH) => { const s = Math.min(maxW / w, maxH / h); return s >= 1 ? Math.max(1, Math.floor(s)) : s }
+function draw(cv, img, sx, sy, sw, sh, scale) {
+  cv.width = Math.max(1, Math.round(sw * scale)); cv.height = Math.max(1, Math.round(sh * scale))
+  const c = cv.getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, cv.width, cv.height)
+  c.drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height)
+}
+const pct = s => s >= 1 ? `${s}x` : `${Math.round(s * 100)}% (too big to show at 1x here)`
+
+async function review(id) {
+  const { data: a, error } = await sb.from('studio_assets').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  if (!a) throw new Error('No picture with this id, or it belongs to another account.')
+  // the chain: the approved pictures this one was made from, oldest first
+  const chain = [a]
+  while (chain[0].parent_id && chain.length < 5) {
+    const { data: p } = await sb.from('studio_assets').select('*').eq('id', chain[0].parent_id).maybeSingle()
+    if (!p) break; chain.unshift(p)
+  }
+  const [pics, taskQ, apQ] = await Promise.all([Promise.all(chain.map(loadPic)),
+    /^[0-9a-f-]{36}$/.test(a.task_id) ? sb.from('studio_tasks').select('id,title,turn,status,project').eq('id', a.task_id).maybeSingle() : { data: null },
+    sb.from('studio_approvals').select('*').eq('asset_id', a.id).order('id', { ascending: false })])
+  const me = pics.at(-1), parent = pics.length > 1 ? pics.at(-2) : null, task = taskQ.data
+  const open = ['held', 'draft', 'failed'].includes(a.status)
+  document.title = `spitz.dev · ${a.original_name || 'picture'}`
+
+  app.innerHTML = `
+    <h1>${esc(a.original_name || a.file_name)}</h1>
+    <div class="row"><span class="badge ${esc(a.status)}">${esc(STATUS[a.status] || a.status)}</span>
+      <span class="sub">${a.width}x${a.height} · made by ${esc(WHO[a.made_by] || a.made_by || 'unknown')} · ${ago(a.created_at)}</span></div>
+    ${task ? `<p class="sub">Task: <a href="../">${esc(task.title)}</a> (${esc(task.project)})</p>` : ''}
+    <div id="need"></div>
+    ${pics.length > 1 ? `<h2>WHERE IT CAME FROM (tap one to view)</h2><div class="chain" id="chain">${pics.map((p, i) => `${i ? '<span class="arrow">→</span>' : ''}<button class="step ${i === pics.length - 1 ? 'me' : ''}" data-i="${i}"><div class="sub">${kind(p.a, i, pics.length)}</div><canvas></canvas><div class="sub">${p.a.width}x${p.a.height} · <span class="badge ${esc(p.a.status)}">${esc(STATUS[p.a.status] || p.a.status)}</span></div></button>`).join('')}</div>` : ''}
+    <h2 id="vt">THE EXACT FILE</h2>
+    <div class="row" id="bgs"><span class="sub">background</span>${['checker', 'dark', 'light', 'floor'].map(b => `<button class="btn ${b === 'checker' ? 'on' : ''}" data-bg="${b}">${b}</button>`).join('')}
+      ${parent ? '<button class="btn" id="cmp">compare with source</button><button class="btn" id="flip" hidden>flip ⇄</button>' : ''}</div>
+    <div class="stage bg-checker" id="stage"></div>
+    <div id="player"></div>
+    <h2>AT TRUE GAME SIZE (1x, no scaling)</h2>
+    <div class="panel bg-checker native" id="native"></div>
+    <h2>CHECKS</h2>
+    <dl class="facts">
+      <dt>stored SHA-256</dt><dd>${esc(a.sha256)}</dd>
+      <dt>bytes shown here</dt><dd class="${me.match ? 'ok' : 'err'}">${me.match ? '✓ same file: this page checked the bytes it shows against the stored checksum' : '✗ the bytes do not match the stored checksum. Do not approve.'}</dd>
+      <dt>pixels</dt><dd>${a.width}x${a.height}${a.anim ? ` · ${a.width / a.anim.frame_w * (a.height / a.anim.frame_h)} frames of ${a.anim.frame_w}x${a.anim.frame_h} at ${a.anim.frame_ms} ms` : ''}</dd>
+      <dt>file</dt><dd>${esc(a.mime_type)} · ${me.bytes} bytes</dd>
+      ${a.note ? `<dt>maker's note</dt><dd>${esc(a.note)}</dd>` : ''}
+      ${parent ? `<dt>made from</dt><dd><a href="?id=${esc(parent.a.id)}">${esc(parent.a.original_name || parent.a.id)}</a> · ${esc(STATUS[parent.a.status] || parent.a.status)}</dd>` : ''}
+    </dl>
+    <p class="sub">Exact pixel equality can be checked by code. Looking alike can't be proven by a score, and whether you like it is your call.</p>
+    <h2>DECISIONS ON THIS FILE</h2>
+    <ul class="history sub">${(apQ.data || []).map(h => `<li>${esc(h.verdict)} · ${ago(h.at)} · ${esc(h.method || h.by_app)}${h.device ? ' · ' + esc(h.device) : ''}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>
+    <div class="decide" id="decide"></div>`
+
+  // waiting-on-you banner for a task parked on the ChatGPT chat
+  needBanner(task)
+
+  // chain thumbnails
+  document.querySelectorAll('#chain .step').forEach(b => { const p = pics[+b.dataset.i]; const fw = p.a.anim ? p.a.anim.frame_w : p.a.width, fh = p.a.anim ? p.a.anim.frame_h : p.a.height
+    draw(b.querySelector('canvas'), p.img, 0, 0, fw, fh, fitScale(fw, fh, 180, 90)); b.onclick = () => show(+b.dataset.i) })
+
+  let cur = pics.length - 1, timer = null, comparing = false, flipped = false
+  const stage = document.getElementById('stage')
+  document.querySelectorAll('[data-bg]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('[data-bg]').forEach(x => x.classList.toggle('on', x === b))
+    for (const el of [stage, document.getElementById('native')]) el.className = el.className.replace(/bg-\w+/, 'bg-' + b.dataset.bg) })
+  const maxW = () => Math.min(stage.clientWidth || 340, 940) - 24, maxH = () => Math.max(260, Math.round(innerHeight * 0.55))
+
+  function show(i) {
+    cur = i; comparing = false; flipped = false; clearInterval(timer)
+    const p = pics[i]; document.getElementById('vt').textContent = i === pics.length - 1 ? 'THE EXACT FILE' : `${kind(p.a, i, pics.length).toUpperCase()} (an earlier file in the chain)`
+    document.querySelectorAll('#chain .step').forEach(b => b.classList.toggle('me', +b.dataset.i === i))
+    const fl = document.getElementById('flip'); if (fl) fl.hidden = true
+    stage.innerHTML = ''
+    const cv = document.createElement('canvas'); stage.appendChild(cv)
+    const sc = fitScale(p.a.width, p.a.height, maxW(), maxH())
+    if (p.a.anim) play(p, cv); else { draw(cv, p.img, 0, 0, p.a.width, p.a.height, sc); document.getElementById('player').innerHTML = `<p class="sub">shown at ${pct(sc)}, nearest-neighbour (no smoothing)</p>` }
+    const nat = document.getElementById('native'); nat.innerHTML = ''
+    const im = new Image(); im.src = p.url; im.width = p.a.width; im.height = p.a.height; im.alt = 'actual size'; nat.appendChild(im)
+    if (p.a.anim) { const c1 = document.createElement('canvas'); draw(c1, p.img, 0, 0, p.a.anim.frame_w, p.a.anim.frame_h, 1); c1.title = 'one frame at 1x'; nat.appendChild(c1) }
+  }
+
+  // animation: plays the real sheet, frame by frame, at its own frame time
+  function play(p, cv) {
+    const { frame_w: fw, frame_h: fh, frame_ms: ms } = p.a.anim, cols = p.a.width / fw, n = cols * (p.a.height / fh)
+    const sc = fitScale(fw, fh, maxW(), maxH())
+    let f = 0, on = true
+    document.getElementById('player').innerHTML = `<div class="row" style="margin-top:8px"><button class="btn on" id="pp">pause</button><input type="range" id="fr" min="0" max="${n - 1}" value="0"><span class="sub" id="fl"></span></div>
+      <p class="sub">${n} frames at ${ms} ms each (${(1000 / ms).toFixed(1)} per second), shown at ${pct(sc)}. Below the player: the whole sheet.</p><div class="stage bg-checker" id="sheet"></div>`
+    const sheet = document.createElement('canvas'); document.getElementById('sheet').appendChild(sheet)
+    draw(sheet, p.img, 0, 0, p.a.width, p.a.height, fitScale(p.a.width, p.a.height, maxW(), 400))
+    const fr = document.getElementById('fr'), fl = document.getElementById('fl'), pp = document.getElementById('pp')
+    const paint = () => { draw(cv, p.img, (f % cols) * fw, Math.floor(f / cols) * fh, fw, fh, sc); fr.value = f; fl.textContent = `frame ${f + 1} of ${n}` }
+    paint(); clearInterval(timer); timer = setInterval(() => { if (on) { f = (f + 1) % n; paint() } }, ms)
+    pp.onclick = () => { on = !on; pp.textContent = on ? 'pause' : 'play'; pp.classList.toggle('on', on) }
+    fr.oninput = () => { on = false; pp.textContent = 'play'; pp.classList.remove('on'); f = +fr.value; paint() }
+  }
+
+  // compare: the source and this file side by side at the same height, or flipped in one place
+  const cmp = document.getElementById('cmp')
+  if (cmp) cmp.onclick = () => {
+    if (comparing) return show(pics.length - 1)
+    comparing = true; clearInterval(timer); cmp.classList.add('on'); cmp.textContent = 'stop comparing'
+    const fl = document.getElementById('flip'); fl.hidden = false
+    const one = p => ({ w: p.a.anim ? p.a.anim.frame_w : p.a.width, h: p.a.anim ? p.a.anim.frame_h : p.a.height })
+    const render = () => {
+      stage.innerHTML = ''
+      const both = flipped ? [flipped === 1 ? parent : me] : [parent, me]
+      const h = Math.min(maxH(), 360), colW = (maxW() - 16) / both.length
+      for (const p of both) {
+        const d = one(p), sc = fitScale(d.w, d.h, colW, h)
+        const box = document.createElement('div'); box.style.textAlign = 'center'; box.style.margin = '0 4px'
+        const cv = document.createElement('canvas'); draw(cv, p.img, 0, 0, d.w, d.h, sc); box.appendChild(cv)
+        const cap = document.createElement('div'); cap.className = 'sub'; cap.textContent = `${p === parent ? 'source' : 'this file'} · ${d.w}x${d.h} · ${pct(sc)}`; box.appendChild(cap)
+        stage.appendChild(box)
+      }
+      document.getElementById('player').innerHTML = `<p class="sub">${flipped ? 'Tap flip to switch between them in the same place.' : 'Side by side, each scaled to about the same height without smoothing. An animation shows its first frame here.'}</p>`
+    }
+    fl.onclick = () => { flipped = flipped === 1 ? 2 : 1; render() }
+    render()
+  }
+  show(cur)
+  addEventListener('resize', () => { if (!comparing) show(cur) })
+
+  // the decision
+  const dec = document.getElementById('decide')
+  if (!open) { dec.innerHTML = `<p class="sub">${a.status === 'rejected' ? 'This file was rejected and can never be used. A fix is a new file.' : 'Already decided. Approved files never change.'}</p>`; return }
+  if (!me.match) { dec.innerHTML = '<p class="err">The bytes here don\'t match the stored checksum, so this file can\'t be approved. Tell Claude.</p>'; return }
+  dec.innerHTML = `<div id="form"></div><div class="row"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes">Changes</button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
+  dec.querySelectorAll('[data-v]').forEach(b => b.onclick = () => decide(b.dataset.v))
+  let pending = null
+  async function decide(v) {
+    const form = document.getElementById('form'), said = document.getElementById('said')
+    if ((v === 'changes' || v === 'rejected') && pending !== v) {
+      pending = v
+      form.innerHTML = `<textarea id="note" placeholder="${v === 'changes' ? 'What should change? (required)' : 'Why? (optional)'}"></textarea><p class="sub">Tap ${v === 'changes' ? 'Changes' : 'Reject'} again to send.</p>`
+      document.getElementById('note').focus(); return
+    }
+    const note = (document.getElementById('note') || {}).value || null
+    if (v === 'changes' && (!note || note.trim().length < 2)) { said.textContent = 'Say what to change.'; said.className = 'err'; return }
+    dec.querySelectorAll('button').forEach(b => b.disabled = true); said.className = 'sub'; said.textContent = 'Saving…'
+    const { data, error } = await sb.rpc('studio_approve', { p_asset_id: a.id, p_sha256: me.sha, p_verdict: v, p_note: note, p_method: VIA, p_device: device() })
+    if (error) { said.className = 'err'; said.textContent = error.message; dec.querySelectorAll('button').forEach(b => b.disabled = false); return }
+    dec.innerHTML = `<p class="${v === 'approved' ? 'ok' : 'sub'}"><b>${v === 'approved' ? 'Approved' : v === 'changes' ? 'Changes requested' : 'Rejected'}.</b> ${esc(data.next || '')}</p>
+      ${data.needs_you_in_chatgpt ? '<div class="need"><b>Needs you:</b> your ChatGPT chat will not start by itself. Open it and ask it to continue this task. Your note is saved on the task.<div class="row" style="margin-top:8px"><a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">open ChatGPT</a></div></div>' : ''}
+      <div class="row"><a class="btn" href="./">next waiting picture</a><a class="btn" href="?id=${esc(a.id)}">reload this one</a></div>`
+  }
+}
+
+function needBanner(task) {
+  const el = document.getElementById('need'); if (!el || !task) return
+  if (task.status === 'open' && task.turn === 'chatgpt_chat')
+    el.innerHTML = `<div class="need"><b>Needs you:</b> this task is waiting on your ChatGPT chat, which never starts by itself. Open ChatGPT and ask it to continue "${esc(task.title)}".</div>`
+}
+
+// No id: everything waiting for a decision, newest first, plus tasks parked on the ChatGPT chat.
+async function queue() {
+  const [held, park, recent] = await Promise.all([
+    sb.from('studio_assets').select('id,original_name,file_name,width,height,made_by,created_at,path,task_id').eq('status', 'held').order('created_at', { ascending: false }).limit(60),
+    sb.from('studio_tasks').select('id,title,project,updated_at').eq('status', 'open').eq('turn', 'chatgpt_chat').order('updated_at', { ascending: false }).limit(20),
+    sb.from('studio_approvals').select('asset_id,verdict,at,note,method').not('user_id', 'is', null).order('id', { ascending: false }).limit(10)])
+  if (held.error) throw held.error
+  const list = held.data || []
+  const urls = {}
+  if (list.length) { const s = await sb.storage.from(STUDIO.bucket).createSignedUrls(list.map(x => x.path), 600); (s.data || []).forEach((u, i) => { urls[list[i].id] = u.signedUrl }) }
+  app.innerHTML = `<h1>${list.length ? `${list.length} picture${list.length > 1 ? 's' : ''} waiting for you` : 'Nothing waiting for you'}</h1>
+    <p class="sub">Nothing here can be used until you decide. Tap one to see the exact file.</p>
+    ${list.map(x => `<a class="q" href="?id=${x.id}">${urls[x.id] ? `<img src="${urls[x.id]}" alt="">` : ''}<div><div>${esc(x.original_name || x.file_name)}</div><div class="sub">${x.width}x${x.height} · by ${esc(WHO[x.made_by] || x.made_by || 'unknown')} · ${ago(x.created_at)}</div></div></a>`).join('')}
+    ${(park.data || []).length ? `<h2>NEEDS YOU IN CHATGPT</h2>${park.data.map(t => `<div class="need"><b>${esc(t.title)}</b> (${esc(t.project)}) is waiting on your ChatGPT chat, which never starts by itself. Open ChatGPT and ask it to continue this task.</div>`).join('')}` : ''}
+    <h2>YOUR LAST DECISIONS</h2><ul class="history sub">${(recent.data || []).map(h => `<li><a href="?id=${h.asset_id}">${esc(h.verdict)}</a> · ${ago(h.at)}${h.note ? ' · "' + esc(h.note) + '"' : ''}</li>`).join('') || '<li>none yet</li>'}</ul>`
+}
+</script>
+</body>
+</html>
