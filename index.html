@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <title>spitz.dev</title>
 <link rel="icon" type="image/png" href="burger_line_64.png">
@@ -709,7 +709,11 @@ async function renderNow(vis) {
       const tag = a.href ? 'a' : 'button'
       return `<${tag} class="${c}" ${attrs}>${esc(a.action)}</${tag}>`
     }
-    const acts = d.second ? `<div class="entryacts">${btn(d, cls)}${btn(d.second, 'decision secondary')}</div>` : btn(d, cls)
+    // Every task row can open its history, even when its main button goes elsewhere (a PR, ChatGPT, art review)
+    const opensTask = !d.href || (d.second && !d.second.href)
+    const history = d.id && !opensTask ? { action:'History', id:d.id } : null
+    const extra = [d.second, history].filter(Boolean)
+    const acts = extra.length ? `<div class="entryacts">${btn(d, cls)}${extra.map(a => btn(a, 'decision secondary')).join('')}</div>` : btn(d, cls)
     return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div>${acts}</article>`
   }
   const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task history</button></div></details>`

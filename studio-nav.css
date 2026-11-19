@@ -50,3 +50,10 @@ studio-nav .studio-bar{display:block;position:static;margin:0;padding:0;backgrou
   a.rvl{display:inline-flex;align-items:center;min-height:40px}
   .cats .cat span{display:inline-flex;align-items:center;min-height:40px}
 }
+
+/* Phones: page width locked (no sideways scrolling or pinch zoom), and form fields at 16px so iOS doesn't zoom in on tap */
+html,body{max-width:100%;overflow-x:clip;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:560px), (pointer:coarse){
+  html,body{touch-action:pan-x pan-y;overscroll-behavior-x:none}
+  input,textarea,select{font-size:16px !important}
+}
