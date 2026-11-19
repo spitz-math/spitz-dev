@@ -28,3 +28,6 @@ class StudioNav extends HTMLElement {
   }
 }
 customElements.define('studio-nav', StudioNav)
+
+// iOS Safari ignores user-scalable=no, so stop pinch zoom here too (the page has its own zoom where it needs one)
+;['gesturestart','gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive:false }))
