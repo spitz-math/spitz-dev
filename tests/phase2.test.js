@@ -60,7 +60,9 @@ async function run(phase) {
   await page.waitForSelector('.compose .btn')
   await page.waitForTimeout(200)
   const r = { errors }
-  r.ready = await page.$eval('#drawer', d => (d.querySelector('.rdy') || {}).innerText || '')
+  // the job check is folded into one header button (Nov 20); its details are still in the page
+  r.ready = await page.$eval('#drawer', d => (d.querySelector('.rdy') || {}).textContent || '')
+  r.job = await page.$eval('#drawer', d => { const j = d.querySelector('details.job'); return j ? { open: j.open, summary: j.querySelector('summary').textContent } : null })
   r.disabled = await page.$$eval('#destination option:disabled', opts => opts.map(o => o.value))
   r.badges = await page.$$eval('.ti', ts => ts.map(t => [...t.querySelectorAll('.badge')].map(b => b.textContent).join('/')))
   r.buttons = await page.$$eval('.ti .rv .btn', bs => bs.length)
@@ -90,6 +92,7 @@ async function run(phase) {
   assert.deepStrictEqual(p2.errors, [])
   assert(/Not ready to hand on/.test(p2.ready) && /source/.test(p2.ready) && /spec/.test(p2.ready), 'what is missing is listed')
   assert(/ChatGPT worker can't take this one/.test(p2.ready), 'refine job says the API worker cannot take it')
+  assert.deepStrictEqual(p2.job, { open: false, summary: 'Job: refine · Not ready (2 missing)' }, 'job check starts folded, with a one-line summary')
   assert.deepStrictEqual(p2.disabled.sort(), ['chatgpt_chat', 'claude', 'openai_worker'], 'handoffs disabled, note still allowed')
   assert.deepStrictEqual(p2.badges, ['draft/check failed', 'approved/check passed', 'ready/check passed'])
   assert.strictEqual(p2.buttons, 0, 'no approve buttons: Kody approves in the Claude thread')

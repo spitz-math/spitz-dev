@@ -87,3 +87,43 @@
 .brief .briefpeek{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--ink);opacity:.8;margin-top:6px;white-space:normal;font-size:13px;line-height:1.45}
 .brief[open] .briefpeek{display:none}
 .dhead .sub{font-size:13px}
+
+/* Task drawer, Nov 20: messages get the room. Wider drawer, one-line header, job check folded into a button,
+   reply box beside its send button and only as tall as what you write; the page behind does not scroll. */
+.drawer{width:min(1000px,100%)}
+body.open{overflow:hidden}
+.drawer .dhead{padding:10px 20px}
+.drawer .dhead .row.start{margin-top:6px;gap:6px 12px}
+.drawer .dhead .status-action{margin-left:0;padding:4px 10px;font-size:13px}
+.drawer .dhead .row.start>.btn{padding:4px 10px;font-size:13px}
+.drawer #rs:empty{display:none}
+.drawer #rs{margin-top:4px}
+.drawer #rs .state{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.drawer .dbody{flex:1 1 auto;min-height:0;overscroll-behavior:contain}
+.drawer .compose{margin-bottom:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:end;padding:10px 20px 12px}
+.drawer .compose textarea{min-height:44px;max-height:40vh;resize:none;padding:8px 10px}
+.drawer .compose>.row{margin-top:0;flex-wrap:nowrap}
+.drawer .compose #cs{grid-column:1/-1}.drawer .compose #cs:empty{display:none}
+.job{position:relative;font-size:13px}
+.job summary{cursor:pointer;list-style:none;border:1px solid var(--good);border-radius:5px;padding:3px 9px;color:var(--good)}
+.job summary::-webkit-details-marker{display:none}
+.job summary::after{content:' ▾';color:var(--muted)}
+.job[open] summary::after{content:' ▴'}
+.job.no summary{border-color:var(--warn);color:var(--warn)}
+.job summary b{font-weight:700}
+.job .rdy{position:absolute;left:0;top:calc(100% + 6px);z-index:3;width:min(520px,calc(100vw - 40px));margin:0;background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--good);border-radius:6px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.job.no .rdy{border-left-color:var(--warn)}
+@media(max-width:760px){
+  .drawer .dhead{padding:8px 12px}
+  .drawer .dhead h3{font-size:15px}
+  .drawer .dbody{padding:12px}
+  .drawer .compose{grid-template-columns:minmax(0,1fr);padding:8px 12px}
+  .drawer .compose>.row{flex-wrap:nowrap}
+  .drawer .compose label{flex:1 1 auto;min-width:0}
+  .drawer .compose label select{flex:1;min-width:0}
+  .drawer .compose .dlabel{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  .drawer .compose #send-action{flex:0 0 auto}
+  .job{position:static}
+  .job .rdy{left:12px;right:12px;width:auto;top:auto}
+  .drawer .dhead{position:relative}
+}
