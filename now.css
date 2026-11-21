@@ -91,7 +91,9 @@
 /* Task drawer, Nov 20: messages get the room. Wider drawer, one-line header, job check folded into a button,
    reply box beside its send button and only as tall as what you write; the page behind does not scroll. */
 .drawer{width:min(1000px,100%)}
-body.open{overflow:hidden}
+/* while a task is open the page behind it is frozen, so the Now/Board/Art/Void bar never scrolls away (touch drags on the panel header used to move it) */
+html:has(body.open),body.open{overflow:hidden;overscroll-behavior:none}
+.drawer{overscroll-behavior:contain}
 .drawer .dhead{padding:10px 20px}
 .drawer .dhead .row.start{margin-top:6px;gap:6px 12px}
 .drawer .dhead .status-action{margin-left:0;padding:4px 10px;font-size:13px}
@@ -127,3 +129,10 @@ body.open{overflow:hidden}
   .job .rdy{left:12px;right:12px;width:auto;top:auto}
   .drawer .dhead{position:relative}
 }
+/* Needs you: tap a task's title to open it; the right-hand buttons are just the next step (no separate History button) */
+.nowv .entrytitle{all:unset;cursor:pointer;font:inherit;color:inherit;letter-spacing:inherit;overflow-wrap:anywhere}
+.nowv .entrytitle .chev{color:var(--muted);margin-left:.35em;font-weight:400;transition:transform .15s}
+.nowv .entrytitle:hover{text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line)}
+.nowv .entrytitle:hover .chev{color:var(--ink)}
+.nowv .entrytitle:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:3px}
+@media(prefers-reduced-motion:no-preference){.nowv .entrytitle:hover .chev{transform:translateX(3px)}}

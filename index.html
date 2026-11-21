@@ -713,21 +713,20 @@ async function renderNow(vis) {
       const tag = a.href ? 'a' : 'button'
       return `<${tag} class="${c}" ${attrs}>${esc(a.action)}</${tag}>`
     }
-    // Every task row can open its history, even when its main button goes elsewhere (a PR, ChatGPT, art review)
-    const opensTask = !d.href || (d.second && !d.second.href)
-    const history = d.id && !opensTask ? { action:'History', id:d.id } : null
-    const extra = [d.second, history].filter(Boolean)
+    // The row's title opens the task (messages, pictures, brief); the buttons on the right are only the next step
+    const extra = [d.second].filter(Boolean)
     const acts = extra.length ? `<div class="entryacts">${btn(d, cls)}${extra.map(a => btn(a, 'decision secondary')).join('')}</div>` : btn(d, cls)
-    return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${esc(d.title)}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div>${acts}</article>`
+    const title = d.id ? `<button class="entrytitle" data-open="${esc(d.id)}" title="Open this task">${esc(d.title)}<span class="chev" aria-hidden="true">›</span></button>` : esc(d.title)
+    return `<article class="entry"><div class="entrybody"><div><span class="projecttag">${esc(d.project)}</span><h3>${title}</h3><p class="reason">${esc(d.reason)}</p>${d.thumbs?.length ? `<div class="entrythumbs">${d.thumbs.map(src => `<img class="entrythumb" src="${esc(src)}" alt="">`).join('')}</div>` : ''}</div></div>${acts}</article>`
   }
-  const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task history</button></div></details>`
+  const progress = ({t,state}) => `<details class="item who-${CLS(t.turn)}" data-work="${esc(t.id)}"><summary><span class="rowtext"><span class="actor">${esc(WHO[t.turn] || 'Unassigned')}</span><strong>${esc(t.title)}</strong><span class="projecttag">${esc(t.project)} · ${esc(state.label)}</span></span></summary><div class="rowdetail"><p class="reason">${esc(state.detail || state.label)} ${esc(state.next || '')}</p><button class="lnk" data-open="${esc(t.id)}">Open task</button></div></details>`
   const finished = t => `<button class="finished" data-open="${esc(t.id)}"><span aria-hidden="true" class="tick">✓</span><span class="rowtext"><strong>${esc(t.title)}</strong><span class="stamp">${esc(t.project)} · ${ago(t.updated_at)}</span></span></button>`
   const expanded = [...b.querySelectorAll('details[data-work][open]')].map(el => el.dataset.work)
   const date = new Date().toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'})
   const html = `<section>${cap('Needs you',decisions.length,date)}<div class="inbox">${decisions.map(entry).join('') || '<p class="quiet">No tasks need your attention in this view.</p>'}
     ${heldResult.error ? '<p class="quiet">Art queue unavailable here. <a href="approve/">Open art review</a></p>' : ''}</div></section>
     <div class="sectiongrid"><section>${cap('In progress',work.length)}<div class="sheet">${work.map(progress).join('') || '<p class="quiet">No other work in progress.</p>'}</div></section>
-    <section>${cap('Recently finished',done.length)}<div class="sheet">${done.map(finished).join('') || '<p class="quiet">No finished tasks in this view.</p>'}</div><a class="lnk archive" href="#history">View history</a></section></div>
+    <section>${cap('Recently finished',done.length)}<div class="sheet">${done.map(finished).join('') || '<p class="quiet">No finished tasks in this view.</p>'}</div><a class="lnk archive" href="#history">All finished tasks</a></section></div>
     ${health && (health.phones === 0 || health.jobs?.some(j => j.ok === false) || (health.last_push && health.last_push.code !== 200)) ? '<p class="health bad">Phone alerts or background checks need attention. See Account below.</p>' : ''}`
   if (b.className === 'nowv' && b.dataset.html === html) return
   const focused = b.contains(document.activeElement) ? document.activeElement : null
