@@ -54,6 +54,11 @@ h2{ font-size:13px; color:var(--muted); margin:18px 0 8px; font-weight:600; }
 .need b{ color:var(--ink); }
 .decide{ background:var(--bg); border-top:1px solid var(--line); padding:10px 0 14px; margin-top:16px; }
 .decide .big{ flex:1 1 30%; min-width:96px; padding:13px 10px; font-weight:700; font-size:15px; }
+/* the three decision buttons are always exactly the same size: three equal columns, one line each */
+.decide .row.verdicts{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; }
+.decide .row.verdicts .big{ min-width:0; white-space:nowrap; }
+.decide .short{ display:none; }
+@media (max-width:560px){ .decide .long{ display:none; } .decide .short{ display:inline; } }
 .big.ap{ border-color:var(--good); color:var(--good); } .big.ap:hover{ background:var(--good); color:#000; }
 .big.ch{ border-color:var(--warn); color:var(--warn); } .big.ch:hover{ background:var(--warn); color:#000; }
 .big.rj{ border-color:var(--bad); color:var(--bad); } .big.rj:hover{ background:var(--bad); color:#000; }
@@ -279,7 +284,7 @@ async function review(id) {
   if (!open) { dec.innerHTML = `<p class="sub">${a.status === 'rejected' ? 'This file was rejected and can never be used. A fix is a new file.' : (apQ.data || [])[0]?.method === 'proof' ? 'Approved automatically: it keeps every pixel of the approved picture it was made from. Approved files never change.' : 'Already decided. Approved files never change.'}</p>`; return }
   if (parent && !['approved', 'ready'].includes(parent.a.status)) { dec.innerHTML = `<p class="sub">Approve <a href="?id=${esc(parent.a.id)}">the picture this was made from</a> first.</p>`; return }
   if (!me.match) { dec.innerHTML = '<p class="err">The bytes here don\'t match the stored checksum, so this file can\'t be approved. Tell Claude.</p>'; return }
-  dec.innerHTML = `<div id="form"></div><div class="row"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes">Request changes</button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
+  dec.innerHTML = `<div id="form"></div><div class="row verdicts"><button class="btn big ap" data-v="approved">Approve</button><button class="btn big ch" data-v="changes" aria-label="Request changes"><span class="long">Request changes</span><span class="short">Changes</span></button><button class="btn big rj" data-v="rejected">Reject</button></div><p class="sub" id="said">${a.made_by === 'chatgpt_chat' ? 'Made in your ChatGPT chat. If you ask for changes, you\'ll need to open ChatGPT yourself: it can\'t start on its own.' : ''}</p>`
   dec.querySelectorAll('[data-v]').forEach(b => b.onclick = () => decide(b.dataset.v))
   let pending = null
   let saving = false
