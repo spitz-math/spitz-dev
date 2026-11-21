@@ -458,13 +458,13 @@ function renderBoard() {
   document.getElementById('workspacetitle').textContent = view === 'board' ? 'Board' : 'Now'
   const vis = tasks.filter(t => (project === 'all' || t.project === project) && (!query || (t.title + ' ' + t.brief + ' ' + t.project).toLowerCase().includes(query)))
   const F = {
-    spitz: t => t.status !== 'done' && t.turn === 'spitz',
+    spitz: t => t.status !== 'done' && (t.turn === 'spitz' || !t.turn),
     chatgpt: t => t.status !== 'done' && grp(t.turn) === 'chatgpt' && !!t.turn,
-    claude: t => t.status !== 'done' && (grp(t.turn) === 'claude' || !t.turn),
+    claude: t => t.status !== 'done' && !!t.turn && grp(t.turn) === 'claude',
     done: t => t.status === 'done'
   }
   const card = (t, k) => `<button class="card who-${k === 'chatgpt' ? CLS(t.turn) : k}" data-id="${t.id}">${thumbHtml(t)}<div class="t">${esc(t.title)}</div>
-        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span class="tw">${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
+        <div class="m"><span>${esc(t.project)}</span><span>${ago(t.updated_at)}</span>${t.status === 'blocked' ? '<span class="blk">blocked</span>' : ''}${!t.turn && t.status !== 'done' ? '<span class="blk">no owner</span>' : ''}${t.turn && t.status !== 'done' && k !== 'spitz' ? `<span class="tw">${esc(WHO[t.turn] || t.turn)}</span>` : ''}<span>by ${esc(WHO[t.created_by] || t.created_by)}</span></div></button>`
   const b = document.getElementById('board')
   if (view === 'now') { renderNow(vis); return }
   const before = flipStart(b)
@@ -568,6 +568,8 @@ function nowState(t, msgs, x) {
   const pr = prOf([...msgs.flatMap(m => m.refs || []), ...(t.refs || [])])
   const st = { cls: '', label: '', detail: '', next: '', pr }
   if (t.status === 'blocked') return Object.assign(st, { cls: 'bad', label: 'Blocked', detail: first(last && last.body).slice(0, 160), next: 'Answer what it needs, then hand it back.' })
+  // a task nobody owns never starts by itself: Kody picks who does it
+  if (!t.turn) return Object.assign(st, { cls: 'warn', label: 'No owner', detail: 'nobody will start it', next: 'Open it and hand it to someone.' })
   if (t.turn === 'spitz') {
     st.label = 'Waiting on you'; st.cls = 'you'
     st.detail = last ? `${WHO[last.author] || last.author} handed it to you ${ago(last.created_at)}` : 'New task'
@@ -681,6 +683,8 @@ async function renderNow(vis) {
     const item = { title:t.title, project:t.project, id:t.id, reason:tm[0]?.kind === 'question' ? tm[0].body.split('\n')[0].slice(0,180) : state.detail || state.label, action:'Open task' }
     if (t.status === 'blocked' || state.cls === 'bad') {
       urgent.push({ ...item, action:state.retry ? 'Review stopped run' : 'Resolve task' })
+    } else if (!t.turn) {
+      urgent.push({ ...item, reason:'No owner, so nobody will start it.', action:'Pick who does it' })
     } else if (t.turn === 'spitz') {
       const list = tm[0]?.kind === 'question' ? urgent : ordinary
       list.push({ ...item, action:state.pr ? 'Review PR' : tm[0]?.kind === 'question' ? 'Answer question' : 'Review task', href:state.pr })
